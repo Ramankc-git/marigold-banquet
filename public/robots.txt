@@ -1,0 +1,7 @@
+# Marigold Banquet Hall & Party Palace
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: /sitemap.xml
