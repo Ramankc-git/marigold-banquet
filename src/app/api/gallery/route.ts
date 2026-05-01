@@ -91,6 +91,45 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// ── PATCH /api/gallery ─────────────────────────────────────────────────────
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return apiError("Photo ID is required", 400);
+    }
+
+    const existing = await db.galleryPhoto.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Gallery photo not found", 404);
+    }
+
+    const parsed = galleryPhotoSchema.partial().safeParse(updateData);
+    if (!parsed.success) {
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
+    }
+
+    // Validate category if provided
+    if (parsed.data.category && !ALLOWED_CATEGORIES.includes(parsed.data.category as (typeof ALLOWED_CATEGORIES)[number])) {
+      return apiError(
+        `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
+        400
+      );
+    }
+
+    const photo = await db.galleryPhoto.update({
+      where: { id },
+      data: parsed.data,
+    });
+
+    return apiResponse(photo);
+  } catch (error) {
+    return handlePrismaError(error);
+  }
+}
+
 // ── DELETE /api/gallery ─────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {

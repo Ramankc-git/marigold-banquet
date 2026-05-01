@@ -21,12 +21,11 @@ const PROTECTED_API_PATTERNS = [
   // Admin reads (sensitive data with PII)
   { method: "GET", pattern: /^\/api\/(enquiries|bookings)(\?|$|\/)/ },
   { method: "GET", pattern: /^\/api\/settings/ },
-  // Admin mutations
-  { method: "PATCH", pattern: /^\/api\/(enquiries|bookings|blogs)/ },
+  // Admin mutations on ALL content routes
+  { method: "POST", pattern: /^\/api\/(gallery|blogs|halls|packages|menu|decorations|offers|vendors|team|faq|testimonials)$/ },
+  { method: "PATCH", pattern: /^\/api\/(enquiries|bookings|blogs|gallery|halls|packages|menu|decorations|offers|vendors|team|faq|testimonials)/ },
   { method: "PUT", pattern: /^\/api\/settings/ },
-  { method: "DELETE", pattern: /^\/api\/(gallery|blogs)/ },
-  // Gallery & blog admin
-  { method: "POST", pattern: /^\/api\/(gallery|blogs)$/ },
+  { method: "DELETE", pattern: /^\/api\/(gallery|blogs|halls|packages|menu|decorations|offers|vendors|team|faq|testimonials|enquiries|bookings)/ },
 ];
 
 export async function middleware(request: NextRequest) {
@@ -113,6 +112,15 @@ export const config = {
     "/api/gallery/:path*",
     "/api/blogs/:path*",
     "/api/settings/:path*",
+    "/api/halls/:path*",
+    "/api/packages/:path*",
+    "/api/menu/:path*",
+    "/api/decorations/:path*",
+    "/api/offers/:path*",
+    "/api/vendors/:path*",
+    "/api/team/:path*",
+    "/api/faq/:path*",
+    "/api/testimonials/:path*",
     "/api/contact",
   ],
 };

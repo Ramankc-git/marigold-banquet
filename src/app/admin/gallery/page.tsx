@@ -5,6 +5,7 @@ import {
   Image as ImageIcon,
   Plus,
   Trash2,
+  Edit,
   RefreshCw,
   ExternalLink,
 } from 'lucide-react'
@@ -86,11 +87,20 @@ export default function GalleryPage() {
   const [photos, setPhotos] = useState<GalleryPhoto[]>(mockPhotos)
   const [activeCategory, setActiveCategory] = useState('all')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingPhoto, setEditingPhoto] = useState<GalleryPhoto | null>(null)
   const [loading, setLoading] = useState(false)
   const [newPhoto, setNewPhoto] = useState({
     url: '',
     caption: '',
     category: 'weddings',
+  })
+  const [editForm, setEditForm] = useState({
+    url: '',
+    caption: '',
+    category: 'weddings',
+    eventDate: '',
+    isActive: true,
   })
 
   const fetchPhotos = useCallback(async () => {
@@ -157,6 +167,41 @@ export default function GalleryPage() {
       // Continue with local delete
     }
     setPhotos((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  const openEditDialog = (photo: GalleryPhoto) => {
+    setEditingPhoto(photo)
+    setEditForm({
+      url: photo.url,
+      caption: photo.caption || '',
+      category: photo.category,
+      eventDate: photo.eventDate || '',
+      isActive: photo.isActive,
+    })
+    setEditDialogOpen(true)
+  }
+
+  const handleEditPhoto = async () => {
+    if (!editingPhoto) return
+    try {
+      const res = await fetch('/api/gallery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingPhoto.id, ...editForm }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPhotos((prev) =>
+          prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
+        )
+      }
+    } catch {
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
+      )
+    }
+    setEditDialogOpen(false)
+    setEditingPhoto(null)
   }
 
   return (
@@ -238,8 +283,16 @@ export default function GalleryPage() {
                   <ImageIcon className="w-12 h-12 text-white/60" />
                 </div>
               )}
-              {/* Delete button overlay */}
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Edit & Delete button overlay */}
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8 shadow-lg bg-white/90 hover:bg-white"
+                  onClick={() => openEditDialog(photo)}
+                >
+                  <Edit className="w-4 h-4 text-burgundy" />
+                </Button>
                 <Button
                   size="icon"
                   variant="destructive"
@@ -367,6 +420,81 @@ export default function GalleryPage() {
                 className="bg-burgundy hover:bg-burgundy-dark text-white"
               >
                 Add Photo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Photo Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-burgundy font-serif flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Edit Photo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-url">Image URL</Label>
+              <Input
+                id="edit-photo-url"
+                placeholder="https://example.com/photo.jpg"
+                value={editForm.url}
+                onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-caption">Caption</Label>
+              <Textarea
+                id="edit-photo-caption"
+                placeholder="Describe this photo..."
+                value={editForm.caption}
+                onChange={(e) => setEditForm({ ...editForm, caption: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select
+                value={editForm.category}
+                onValueChange={(value) => setEditForm({ ...editForm, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.filter((c) => c.value !== 'all').map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-photo-date">Event Date</Label>
+              <Input
+                id="edit-photo-date"
+                type="date"
+                value={editForm.eventDate}
+                onChange={(e) => setEditForm({ ...editForm, eventDate: e.target.value })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEditPhoto}
+                className="bg-burgundy hover:bg-burgundy-dark text-white"
+              >
+                Save Changes
               </Button>
             </div>
           </div>

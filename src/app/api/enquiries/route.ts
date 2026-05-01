@@ -94,3 +94,26 @@ export async function PATCH(req: NextRequest) {
     return handlePrismaError(error);
   }
 }
+
+// ── DELETE /api/enquiries ────────────────────────────────────────────────
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return apiError("Enquiry ID is required", 400);
+    }
+
+    const existing = await db.enquiry.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Enquiry not found", 404);
+    }
+
+    await db.enquiry.delete({ where: { id } });
+
+    return apiResponse({ deleted: true });
+  } catch (error) {
+    return handlePrismaError(error);
+  }
+}

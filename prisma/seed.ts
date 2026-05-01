@@ -616,6 +616,124 @@ async function seed() {
   }
   console.log(`Created ${offers.length} offers`);
 
+  // Create gallery photos
+  const galleryPhotos = [
+    { url: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800", caption: "Grand Wedding Setup", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 1 },
+    { url: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800", caption: "Floral Mandap Decoration", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 2 },
+    { url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800", caption: "Wedding Reception Dance Floor", category: "weddings", eventDate: "2025-02-28", isActive: true, order: 3 },
+    { url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800", caption: "Corporate Conference Setup", category: "corporate", eventDate: "2025-02-20", isActive: true, order: 4 },
+    { url: "https://images.unsplash.com/photo-1505236858219-8359d29d0357?w=800", caption: "Corporate Seminar Stage", category: "corporate", eventDate: "2025-01-18", isActive: true, order: 5 },
+    { url: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800", caption: "Birthday Party - Tropical Theme", category: "parties", eventDate: "2025-03-01", isActive: true, order: 6 },
+    { url: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800", caption: "Kids Birthday Celebration", category: "parties", eventDate: "2025-01-15", isActive: true, order: 7 },
+    { url: "https://images.unsplash.com/photo-1555244162-803834f70033?w=800", caption: "Nepali Thali Spread", category: "food", isActive: true, order: 8 },
+    { url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800", caption: "Buffet Counter Setup", category: "food", isActive: true, order: 9 },
+    { url: "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800", caption: "Rose Gold Centerpiece", category: "decoration", isActive: true, order: 10 },
+    { url: "https://images.unsplash.com/photo-1522413452208-996ff3f3e740?w=800", caption: "Marigold Flower Arch", category: "decoration", isActive: true, order: 11 },
+    { url: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800", caption: "Main Banquet Hall View", category: "venue_spaces", isActive: true, order: 12 },
+    { url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800", caption: "Garden Terrace View", category: "venue_spaces", isActive: true, order: 13 },
+  ];
+
+  for (const photo of galleryPhotos) {
+    await db.galleryPhoto.create({ data: photo });
+  }
+  console.log(`Created ${galleryPhotos.length} gallery photos`);
+
+  // Create decoration themes
+  const decorationThemes = [
+    {
+      name: "Royal Mughal",
+      slug: "royal-mughal",
+      category: "royal",
+      tier: "luxury",
+      description: "Opulent Mughal-inspired decoration with rich fabrics, gold accents, and grand floral arrangements. Perfect for lavish wedding celebrations.",
+      includes: JSON.stringify(["Grand Mandap", "Gold Fabric Draping", "Crystal Chandeliers", "Rose Petal Aisle", "Marigold Garlands", "Candle Arrangements"]),
+      price: 150000,
+      isActive: true,
+      order: 1,
+    },
+    {
+      name: "Enchanted Garden",
+      slug: "enchanted-garden",
+      category: "garden",
+      tier: "premium",
+      description: "A whimsical garden-themed setup with lush greenery, fairy lights, and fresh floral installations that bring the outdoors inside.",
+      includes: JSON.stringify(["Floral Arch", "Hanging Greenery", "Fairy Light Canopy", "Wildflower Centerpieces", "Moss Runner", "Wooden Accents"]),
+      price: 100000,
+      isActive: true,
+      order: 2,
+    },
+    {
+      name: "Traditional Nepali",
+      slug: "traditional-nepali",
+      category: "traditional_nepali",
+      tier: "basic",
+      description: "Authentic Nepali decoration with marigold garlands, dhaka fabric, brass utensils, and traditional mandap setup for cultural ceremonies.",
+      includes: JSON.stringify(["Traditional Mandap", "Marigold Garlands", "Dhaka Fabric Draping", "Brass Diyas", "Rangoli", "Toran"]),
+      price: 50000,
+      isActive: true,
+      order: 3,
+    },
+    {
+      name: "Modern Glamour",
+      slug: "modern-glamour",
+      category: "modern_glam",
+      tier: "luxury",
+      description: "Sleek and sophisticated modern decoration with metallic accents, geometric patterns, and dramatic lighting for a contemporary celebration.",
+      includes: JSON.stringify(["Geometric Backdrop", "Metallic Accents", "LED Wall", "Crystal Centerpieces", "Dramatic Uplighting", "Champagne Tower Setup"]),
+      price: 180000,
+      isActive: true,
+      order: 4,
+    },
+    {
+      name: "Rustic Charm",
+      slug: "rustic-charm",
+      category: "rustic",
+      tier: "premium",
+      description: "Warm and inviting rustic theme with natural wood, burlap, mason jars, and wildflowers for a cozy countryside feel.",
+      includes: JSON.stringify(["Wooden Arch", "Burlap Runners", "Mason Jar Centerpieces", "Lantern Aisle", "Twinkle Lights", "Hessian Draping"]),
+      price: 80000,
+      isActive: true,
+      order: 5,
+    },
+    {
+      name: "Floral Paradise",
+      slug: "floral-paradise",
+      category: "floral",
+      tier: "luxury",
+      description: "An abundance of fresh flowers creating a paradise of color and fragrance. Features ceiling installations, flower walls, and suspended arrangements.",
+      includes: JSON.stringify(["Flower Ceiling Installation", "Flower Wall Backdrop", "Suspended Floral Chandeliers", "Rose Petal Path", "Orchid Arrangements", "Fresh Table Runners"]),
+      price: 200000,
+      isActive: true,
+      order: 6,
+    },
+  ];
+
+  for (const theme of decorationThemes) {
+    await db.decorationTheme.create({ data: theme });
+  }
+  console.log(`Created ${decorationThemes.length} decoration themes`);
+
+  // Create menu items
+  const menuItems = [
+    { name: "Classic Nepali Thali", category: "nepali_thali", description: "Traditional dal, bhat, tarkari, achar, and masu served on a brass plate", pricePerPlate: 800, isVegetarian: false, isActive: true, order: 1 },
+    { name: "Veg Nepali Thali", category: "nepali_thali", description: "Pure vegetarian dal, bhat, tarkari, achar, and salad", pricePerPlate: 600, isVegetarian: true, isActive: true, order: 2 },
+    { name: "Butter Chicken", category: "indian", description: "Creamy tomato-based chicken curry with aromatic spices", pricePerPlate: 700, isVegetarian: false, isActive: true, order: 3 },
+    { name: "Paneer Tikka Masala", category: "indian", description: "Grilled cottage cheese in rich masala gravy", pricePerPlate: 650, isVegetarian: true, isActive: true, order: 4 },
+    { name: "Kung Pao Chicken", category: "chinese", description: "Spicy stir-fried chicken with peanuts and vegetables", pricePerPlate: 750, isVegetarian: false, isActive: true, order: 5 },
+    { name: "Veg Manchurian", category: "chinese", description: "Crispy vegetable balls in tangy Manchurian sauce", pricePerPlate: 500, isVegetarian: true, isActive: true, order: 6 },
+    { name: "Grilled Salmon", category: "continental", description: "Herb-crusted Atlantic salmon with lemon butter sauce", pricePerPlate: 1200, isVegetarian: false, isActive: true, order: 7 },
+    { name: "Pasta Primavera", category: "continental", description: "Fresh vegetables tossed in penne with olive oil and herbs", pricePerPlate: 550, isVegetarian: true, isActive: true, order: 8 },
+    { name: "Fusion Momos", category: "fusion", description: "Innovative momo varieties - cheese, chocolate, and paneer", pricePerPlate: 400, isVegetarian: true, isActive: true, order: 9 },
+    { name: "Live Chaat Counter", category: "live_counters", description: "Interactive chaat station with pani puri, aloo tikki, and more", pricePerPlate: 350, isVegetarian: true, isActive: true, order: 10 },
+    { name: "Live Momo Station", category: "live_counters", description: "Fresh steamed and fried momos made to order", pricePerPlate: 450, isVegetarian: false, isActive: true, order: 11 },
+    { name: "Premium Buffet Spread", category: "buffet", description: "Complete multi-cuisine buffet with 20+ dishes", pricePerPlate: 1500, isVegetarian: false, isHalal: true, isActive: true, order: 12 },
+  ];
+
+  for (const item of menuItems) {
+    await db.menuItem.create({ data: item });
+  }
+  console.log(`Created ${menuItems.length} menu items`);
+
   // Create admin users
   await db.adminUser.create({
     data: {

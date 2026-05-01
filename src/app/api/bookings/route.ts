@@ -99,3 +99,26 @@ export async function PATCH(req: NextRequest) {
     return handlePrismaError(error);
   }
 }
+
+// ── DELETE /api/bookings ─────────────────────────────────────────────────
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return apiError("Booking ID is required", 400);
+    }
+
+    const existing = await db.booking.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Booking not found", 404);
+    }
+
+    await db.booking.delete({ where: { id } });
+
+    return apiResponse({ deleted: true });
+  } catch (error) {
+    return handlePrismaError(error);
+  }
+}
