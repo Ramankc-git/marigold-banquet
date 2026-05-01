@@ -52,3 +52,49 @@ Stage Summary:
 - Custom GA4 events being tracked: enquiry_submitted, booking_started, whatsapp_click, phone_click, gallery_photo_view, instagram_profile_click, cta_click
 - Vercel Analytics and Speed Insights were already active (no changes needed)
 - GA4 auto-tracks page_view events for all pages
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Comprehensive codebase review, troubleshooting, and engineering improvements
+
+Work Log:
+- Conducted deep review of 21 API routes, auth/middleware, Prisma schema, and all frontend pages
+- Identified 50+ issues across security, bugs, performance, and code quality categories
+- Fixed 6 critical security vulnerabilities:
+  1. Removed default credentials from login page (was visible to anyone)
+  2. Removed hardcoded JWT secret fallback (could allow token forgery)
+  3. Removed hardcoded default passwords (admin123, manager123, editor123)
+  4. Fixed SSRF vulnerability in Instagram URL import (strict URL validation)
+  5. Added Instagram & blog-post routes to middleware auth protection
+  6. Applied security headers to ALL middleware responses
+- Fixed critical bug: Gallery "Follow @${username}" rendered as literal text
+- Fixed high-priority bugs:
+  - Instagram links pointed to generic URL instead of /marigoldbanquet/
+  - Booking venue viewing form was fake (setTimeout), now actually submits to API
+  - Email typo (missing .np TLD)
+  - Footer sister brand link went to # instead of real URL
+  - Missing DialogDescription for accessibility
+- Improved next.config.ts:
+  - Removed ignoreBuildErrors/ignoreDuringBuilds (was hiding type errors)
+  - Enabled reactStrictMode
+  - Added img.youtube.com remote pattern
+- Improved Prisma schema:
+  - Added @unique on GalleryPhoto.instagramMediaId
+  - Added 10 database indexes for frequently queried fields
+  - Changed Float → Decimal for all monetary fields (NPR precision)
+  - Added BlockedDate → Hall relation with cascade delete
+  - Added timestamps to SiteSetting, PageSetting, BlockedDate
+- Added 5 error boundaries and 11 loading states
+- Removed 9 unused npm dependencies
+- Fixed TypeScript errors exposed by removing ignoreBuildErrors
+- Excluded skills/mini-services from tsconfig compilation
+- Built successfully and deployed to Vercel
+
+Stage Summary:
+- 33 files changed, 666 insertions, 3136 deletions
+- All critical and high severity issues fixed
+- Instagram API route now requires authentication (verified)
+- Security headers confirmed on API routes
+- Google Analytics still working (G-R6NGNFVC98)
+- Deployment: marigold-banquet-dfq46nhpq.vercel.app (READY)
