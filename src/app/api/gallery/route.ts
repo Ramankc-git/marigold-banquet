@@ -1,89 +1,115 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { apiResponse, apiError, handlePrismaError, clampInt, parseBoolean } from "@/lib/api-utils";
+import { galleryPhotoSchema } from "@/lib/validations";
 
+const ALLOWED_CATEGORIES = ["weddings", "parties", "corporate", "decoration", "food", "venue_spaces"] as const;
+
+// ── GET /api/gallery ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
+    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
+    const all = parseBoolean(searchParams.get("all"));
     const category = searchParams.get("category");
-    const all = searchParams.get("all");
 
     const where: Record<string, unknown> = {};
-    if (category) where.category = category;
-    if (!all) where.isActive = true;
 
-    const photos = await db.galleryPhoto.findMany({
-      where,
-      orderBy: { order: "asc" },
-      take: 200,
-    });
+    if (category) {
+      if (!ALLOWED_CATEGORIES.includes(category as (typeof ALLOWED_CATEGORIES)[number])) {
+        return apiError(
+          `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
+          400
+        );
+      }
+      where.category = category;
+    }
 
+    if (!all) {
+      where.isActive = true;
+    }
+
+    const [photos, total] = await Promise.all([
+      db.galleryPhoto.findMany({
+        where,
+        orderBy: { order: "asc" },
+        take: limit,
+        skip: offset,
+      }),
+      db.galleryPhoto.count({ where }),
+    ]);
+
+    // Also return videos (lightweight, no pagination needed)
     const videos = await db.galleryVideo.findMany({
       where: all ? {} : { isActive: true },
       orderBy: { order: "asc" },
     });
 
-    return NextResponse.json({ photos, videos });
+    return apiResponse({ photos, videos, total });
   } catch (error) {
-    console.error("Fetch gallery error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch gallery" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
+// ── POST /api/gallery ───────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { url, caption, category } = body;
 
-    if (!url || !category) {
-      return NextResponse.json(
-        { error: "URL and category are required" },
-        { status: 400 }
+    const parsed = galleryPhotoSchema.safeParse(body);
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, fieldErrors);
+    }
+
+    const data = parsed.data;
+
+    // Validate category against allowed values
+    if (!ALLOWED_CATEGORIES.includes(data.category as (typeof ALLOWED_CATEGORIES)[number])) {
+      return apiError(
+        `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
+        400
       );
     }
 
     const photo = await db.galleryPhoto.create({
       data: {
-        url,
-        caption: caption || null,
-        category,
-        isActive: true,
-        order: 0,
+        url: data.url,
+        caption: data.caption || null,
+        category: data.category,
+        eventDate: data.eventDate || null,
+        isActive: data.isActive ?? true,
+        order: data.order ?? 0,
       },
     });
 
-    return NextResponse.json({ success: true, photo }, { status: 201 });
+    return apiResponse(photo, 201);
   } catch (error) {
-    console.error("Create gallery photo error:", error);
-    return NextResponse.json(
-      { error: "Failed to add photo" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
+// ── DELETE /api/gallery ─────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Photo ID is required" },
-        { status: 400 }
-      );
+      return apiError("Photo ID is required", 400);
+    }
+
+    const existing = await db.galleryPhoto.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Gallery photo not found", 404);
     }
 
     await db.galleryPhoto.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return apiResponse({ deleted: true });
   } catch (error) {
-    console.error("Delete gallery photo error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete photo" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }

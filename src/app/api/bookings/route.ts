@@ -1,111 +1,101 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { apiResponse, apiError, handlePrismaError, clampInt } from "@/lib/api-utils";
+import { bookingSchema, bookingStatusSchema } from "@/lib/validations";
+
+const ALLOWED_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"] as const;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
+    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
     const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "50");
 
-    const where = status ? { status } : {};
+    const where = status && ALLOWED_BOOKING_STATUSES.includes(status as typeof ALLOWED_BOOKING_STATUSES[number])
+      ? { status }
+      : {};
 
-    const bookings = await db.booking.findMany({
-      where,
-      orderBy: { eventDate: "asc" },
-      take: limit,
-      include: {
-        hall: { select: { name: true } },
-      },
-    });
+    const [bookings, total] = await Promise.all([
+      db.booking.findMany({
+        where,
+        orderBy: { eventDate: "asc" },
+        take: limit,
+        skip: offset,
+        include: {
+          hall: { select: { name: true } },
+        },
+      }),
+      db.booking.count({ where }),
+    ]);
 
-    return NextResponse.json({ bookings });
+    return apiResponse({ bookings, total });
   } catch (error) {
-    console.error("Fetch bookings error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch bookings" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      fullName,
-      phone,
-      email,
-      eventType,
-      hallId,
-      expectedGuests,
-      eventDate,
-      startTime,
-      endTime,
-      packageType,
-      totalAmount,
-      notes,
-    } = body;
+    const parsed = bookingSchema.safeParse(body);
 
-    if (!fullName || !phone || !eventType || !eventDate) {
-      return NextResponse.json(
-        { error: "Full name, phone, event type, and event date are required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, errors);
     }
 
     const booking = await db.booking.create({
       data: {
-        fullName,
-        phone,
-        email: email || null,
-        eventType,
-        hallId: hallId || null,
-        expectedGuests: expectedGuests || null,
-        eventDate,
-        startTime: startTime || null,
-        endTime: endTime || null,
-        packageType: packageType || null,
-        totalAmount: totalAmount || null,
-        notes: notes || null,
+        fullName: parsed.data.fullName,
+        phone: parsed.data.phone,
+        email: parsed.data.email || null,
+        eventType: parsed.data.eventType,
+        hallId: parsed.data.hallId || null,
+        expectedGuests: parsed.data.expectedGuests ?? null,
+        eventDate: parsed.data.eventDate,
+        startTime: parsed.data.startTime || null,
+        endTime: parsed.data.endTime || null,
+        packageType: parsed.data.packageType || null,
+        totalAmount: parsed.data.totalAmount ?? null,
+        notes: parsed.data.notes || null,
       },
     });
 
-    return NextResponse.json({ success: true, booking }, { status: 201 });
+    return apiResponse(booking, 201);
   } catch (error) {
-    console.error("Create booking error:", error);
-    return NextResponse.json(
-      { error: "Failed to create booking" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, status, notes } = body;
+    const parsed = bookingStatusSchema.safeParse(body);
 
-    if (!id || !status) {
-      return NextResponse.json(
-        { error: "ID and status are required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, errors);
+    }
+
+    const { id, status, notes } = parsed.data;
+
+    const existing = await db.booking.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Booking not found", 404);
     }
 
     const booking = await db.booking.update({
       where: { id },
       data: {
         status,
-        notes: notes || undefined,
+        ...(notes !== undefined ? { notes } : {}),
       },
     });
 
-    return NextResponse.json({ success: true, booking });
+    return apiResponse(booking);
   } catch (error) {
-    console.error("Update booking error:", error);
-    return NextResponse.json(
-      { error: "Failed to update booking" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }

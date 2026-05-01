@@ -1,114 +1,102 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { apiResponse, apiError, handlePrismaError, clampInt, parseBoolean } from "@/lib/api-utils";
+import { blogPostSchema } from "@/lib/validations";
 
+// ── GET /api/blogs ──────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const all = searchParams.get("all");
+
+    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
+    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
+    const all = parseBoolean(searchParams.get("all"));
 
     const where = all ? {} : { isPublished: true };
 
-    const posts = await db.blogPost.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+    const [posts, total] = await Promise.all([
+      db.blogPost.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      db.blogPost.count({ where }),
+    ]);
 
-    return NextResponse.json({ posts });
+    return apiResponse({ posts, total });
   } catch (error) {
-    console.error("Fetch blogs error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch blog posts" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
+// ── POST /api/blogs ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      title,
-      slug,
-      excerpt,
-      content,
-      featuredImage,
-      category,
-      author,
-      seoTitle,
-      seoDesc,
-      isPublished,
-    } = body;
 
-    if (!title || !slug || !content || !category) {
-      return NextResponse.json(
-        { error: "Title, slug, content, and category are required" },
-        { status: 400 }
-      );
+    const parsed = blogPostSchema.safeParse(body);
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, fieldErrors);
     }
+
+    const data = parsed.data;
 
     const post = await db.blogPost.create({
       data: {
-        title,
-        slug,
-        excerpt: excerpt || null,
-        content,
-        featuredImage: featuredImage || null,
-        category,
-        author: author || null,
-        seoTitle: seoTitle || null,
-        seoDesc: seoDesc || null,
-        isPublished: isPublished || false,
-        publishedAt: isPublished ? new Date() : null,
+        title: data.title,
+        slug: data.slug,
+        excerpt: data.excerpt || null,
+        content: data.content,
+        featuredImage: data.featuredImage || null,
+        category: data.category,
+        author: data.author || null,
+        readTime: data.readTime || null,
+        seoTitle: data.seoTitle || null,
+        seoDesc: data.seoDesc || null,
+        isPublished: data.isPublished ?? false,
+        publishedAt: data.isPublished ? new Date() : null,
       },
     });
 
-    return NextResponse.json({ success: true, post }, { status: 201 });
+    return apiResponse(post, 201);
   } catch (error) {
-    console.error("Create blog post error:", error);
-    return NextResponse.json(
-      { error: "Failed to create blog post" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
+// ── PATCH /api/blogs ────────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, ...data } = body;
+    const { id, ...rest } = body;
 
-    if (!id) {
-      return NextResponse.json(
-        { error: "Post ID is required" },
-        { status: 400 }
-      );
+    if (!id || typeof id !== "string") {
+      return apiError("Post ID is required", 400);
     }
 
-    if (data.isPublished && !data.publishedAt) {
-      data.publishedAt = new Date();
+    const partialSchema = blogPostSchema.partial();
+    const parsed = partialSchema.safeParse(rest);
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, fieldErrors);
     }
 
-    const allowedFields = [
-      "title",
-      "slug",
-      "excerpt",
-      "content",
-      "featuredImage",
-      "category",
-      "author",
-      "readTime",
-      "seoTitle",
-      "seoDesc",
-      "isPublished",
-      "publishedAt",
-    ];
+    if (Object.keys(parsed.data).length === 0) {
+      return apiError("No valid fields provided for update", 400);
+    }
 
-    const updateData: Record<string, unknown> = {};
-    for (const field of allowedFields) {
-      if (field in data) {
-        updateData[field] = data[field as keyof typeof data];
-      }
+    const existing = await db.blogPost.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Blog post not found", 404);
+    }
+
+    const updateData: Record<string, unknown> = { ...parsed.data };
+
+    // Auto-set publishedAt when publishing for the first time
+    if (updateData.isPublished === true && !existing.publishedAt) {
+      updateData.publishedAt = new Date();
     }
 
     const post = await db.blogPost.update({
@@ -116,36 +104,31 @@ export async function PATCH(req: NextRequest) {
       data: updateData,
     });
 
-    return NextResponse.json({ success: true, post });
+    return apiResponse(post);
   } catch (error) {
-    console.error("Update blog post error:", error);
-    return NextResponse.json(
-      { error: "Failed to update blog post" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
+// ── DELETE /api/blogs ───────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Post ID is required" },
-        { status: 400 }
-      );
+      return apiError("Post ID is required", 400);
+    }
+
+    const existing = await db.blogPost.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Blog post not found", 404);
     }
 
     await db.blogPost.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return apiResponse({ deleted: true });
   } catch (error) {
-    console.error("Delete blog post error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete blog post" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }

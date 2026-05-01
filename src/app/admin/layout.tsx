@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Mail,
@@ -21,7 +21,6 @@ import {
   Settings,
   Menu,
   LogOut,
-  ChevronLeft,
   Flower2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +28,13 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+
+interface AdminUser {
+  id: string
+  email: string
+  name: string
+  role: string
+}
 
 const navItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -48,7 +54,15 @@ const navItems = [
   { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 
-function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
+function SidebarNav({
+  onLinkClick,
+  user,
+  onLogout,
+}: {
+  onLinkClick?: () => void
+  user: AdminUser
+  onLogout: () => void
+}) {
   const pathname = usePathname()
 
   return (
@@ -97,17 +111,18 @@ function SidebarNav({ onLinkClick }: { onLinkClick?: () => void }) {
       <div className="p-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-rose-gold/30 flex items-center justify-center">
-            <span className="text-sm font-bold text-white">A</span>
+            <span className="text-sm font-bold text-white">{user.name.charAt(0).toUpperCase()}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Admin User</p>
-            <p className="text-xs text-white/50 truncate">Super Admin</p>
+            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+            <p className="text-xs text-white/50 truncate">{user.role.replace(/_/g, ' ')}</p>
           </div>
         </div>
         <Button
           variant="ghost"
           size="sm"
           className="w-full justify-start text-white/60 hover:text-white hover:bg-white/10"
+          onClick={onLogout}
         >
           <LogOut className="w-4 h-4 mr-2" />
           Logout
@@ -122,21 +137,90 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
   const pathname = usePathname()
+  const [user, setUser] = useState<AdminUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  useEffect(() => {
+    // Skip auth check for login page
+    if (pathname === '/admin/login') {
+      setLoading(false)
+      return
+    }
+
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/verify')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.success && data.data) {
+            setUser(data.data)
+          } else {
+            router.push('/admin/login')
+          }
+        } else {
+          router.push('/admin/login')
+        }
+      } catch {
+        router.push('/admin/login')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [pathname, router])
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Ignore logout API errors, redirect anyway
+    }
+    setUser(null)
+    router.push('/admin/login')
+  }
+
+  // Login page gets no admin shell
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ivory">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-burgundy"></div>
+          <p className="text-sm text-muted-foreground">Verifying authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Not authenticated
+  if (!user) {
+    return null
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-ivory">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-burgundy-dark border-r border-white/10">
-        <SidebarNav />
+        <SidebarNav user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0 bg-burgundy-dark border-white/10">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-          <SidebarNav onLinkClick={() => setSidebarOpen(false)} />
+          <SidebarNav
+            onLinkClick={() => setSidebarOpen(false)}
+            user={user}
+            onLogout={handleLogout}
+          />
         </SheetContent>
       </Sheet>
 
@@ -164,11 +248,11 @@ export default function AdminLayout({
           {/* Right side - admin info */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-burgundy">Admin User</p>
-              <p className="text-xs text-muted-foreground">Super Admin</p>
+              <p className="text-sm font-medium text-burgundy">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.role.replace(/_/g, ' ')}</p>
             </div>
             <div className="w-9 h-9 rounded-full bg-burgundy/10 flex items-center justify-center">
-              <span className="text-sm font-bold text-burgundy">A</span>
+              <span className="text-sm font-bold text-burgundy">{user.name.charAt(0).toUpperCase()}</span>
             </div>
           </div>
         </header>

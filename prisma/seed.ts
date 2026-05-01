@@ -616,16 +616,32 @@ async function seed() {
   }
   console.log(`Created ${offers.length} offers`);
 
-  // Create admin user
+  // Create admin users
   await db.adminUser.create({
     data: {
       email: "admin@marigoldbanquet.com.np",
-      name: "Admin",
-      password: "$2a$10$dummyhashfordevelopmentonly",
+      name: "Super Admin",
+      password: "admin123", // TODO: Hash with bcrypt in production
       role: "super_admin",
     },
   });
-  console.log("Created admin user");
+  await db.adminUser.create({
+    data: {
+      email: "manager@marigoldbanquet.com.np",
+      name: "Event Manager",
+      password: "manager123",
+      role: "event_manager",
+    },
+  });
+  await db.adminUser.create({
+    data: {
+      email: "editor@marigoldbanquet.com.np",
+      name: "Content Editor",
+      password: "editor123",
+      role: "content_editor",
+    },
+  });
+  console.log("Created 3 admin users");
 
   // Create page settings
   const pages = [

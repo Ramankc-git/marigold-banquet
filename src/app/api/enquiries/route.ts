@@ -1,104 +1,96 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { apiResponse, apiError, handlePrismaError, clampInt } from "@/lib/api-utils";
+import { enquirySchema, enquiryStatusSchema } from "@/lib/validations";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      fullName,
-      phone,
-      email,
-      eventType,
-      hallPreference,
-      expectedGuests,
-      preferredDate,
-      budgetRange,
-      specialReqs,
-      referenceNumber,
-    } = body;
-
-    if (!fullName || !phone || !eventType) {
-      return NextResponse.json(
-        { error: "Full name, phone, and event type are required" },
-        { status: 400 }
-      );
-    }
-
-    const enquiry = await db.enquiry.create({
-      data: {
-        fullName,
-        phone,
-        email: email || null,
-        eventType,
-        hallPreference: hallPreference || null,
-        expectedGuests: expectedGuests || null,
-        preferredDate: preferredDate || null,
-        budgetRange: budgetRange || null,
-        specialReqs: specialReqs || null,
-        referenceNumber: referenceNumber || `MG-${Date.now().toString(36).toUpperCase()}`,
-      },
-    });
-
-    return NextResponse.json({ success: true, enquiry }, { status: 201 });
-  } catch (error) {
-    console.error("Enquiry creation error:", error);
-    return NextResponse.json(
-      { error: "Failed to submit enquiry" },
-      { status: 500 }
-    );
-  }
-}
+const ALLOWED_ENQUIRY_STATUSES = ["new", "contacted", "confirmed", "cancelled"] as const;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
+    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
     const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "50");
 
-    const where = status ? { status } : {};
+    const where = status && ALLOWED_ENQUIRY_STATUSES.includes(status as typeof ALLOWED_ENQUIRY_STATUSES[number])
+      ? { status }
+      : {};
 
-    const enquiries = await db.enquiry.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: limit,
+    const [enquiries, total] = await Promise.all([
+      db.enquiry.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      db.enquiry.count({ where }),
+    ]);
+
+    return apiResponse({ enquiries, total });
+  } catch (error) {
+    return handlePrismaError(error);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const parsed = enquirySchema.safeParse(body);
+
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, errors);
+    }
+
+    const enquiry = await db.enquiry.create({
+      data: {
+        fullName: parsed.data.fullName,
+        phone: parsed.data.phone,
+        email: parsed.data.email || null,
+        eventType: parsed.data.eventType,
+        hallPreference: parsed.data.hallPreference || null,
+        expectedGuests: parsed.data.expectedGuests ?? null,
+        preferredDate: parsed.data.preferredDate || null,
+        budgetRange: parsed.data.budgetRange || null,
+        specialReqs: parsed.data.specialReqs || null,
+        referenceNumber: parsed.data.referenceNumber || `MG-${Date.now().toString(36).toUpperCase()}`,
+      },
     });
 
-    return NextResponse.json({ enquiries });
+    return apiResponse(enquiry, 201);
   } catch (error) {
-    console.error("Fetch enquiries error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch enquiries" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, status, notes } = body;
+    const parsed = enquiryStatusSchema.safeParse(body);
 
-    if (!id || !status) {
-      return NextResponse.json(
-        { error: "ID and status are required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return apiError("Validation failed", 400, errors);
+    }
+
+    const { id, status, notes } = parsed.data;
+
+    const existing = await db.enquiry.findUnique({ where: { id } });
+    if (!existing) {
+      return apiError("Enquiry not found", 404);
     }
 
     const enquiry = await db.enquiry.update({
       where: { id },
       data: {
         status,
-        notes: notes || undefined,
+        ...(notes !== undefined ? { notes } : {}),
       },
     });
 
-    return NextResponse.json({ success: true, enquiry });
+    return apiResponse(enquiry);
   } catch (error) {
-    console.error("Update enquiry error:", error);
-    return NextResponse.json(
-      { error: "Failed to update enquiry" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }

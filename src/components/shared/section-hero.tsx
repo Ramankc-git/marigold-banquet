@@ -25,7 +25,7 @@ export function SectionHero({
       {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+        style={{ backgroundImage: backgroundImage.startsWith('linear-gradient') || backgroundImage.startsWith('radial-gradient') ? backgroundImage : `url(${backgroundImage})` }}
       />
 
       {/* Overlay */}
@@ -36,6 +36,7 @@ export function SectionHero({
         {/* Breadcrumb */}
         {breadcrumb && breadcrumb.length > 0 && (
           <motion.nav
+            aria-label="Breadcrumb"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
