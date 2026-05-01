@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { trackPhoneClick, trackCTAClick } from "@/lib/analytics";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -69,6 +70,7 @@ export function Header() {
               <a
                 href="tel:+9779851111191"
                 className="flex items-center gap-1 hover:text-marigold-light transition-colors"
+                onClick={() => trackPhoneClick('header')}
               >
                 <Phone className="w-3 h-3" />
                 +977-9851111191
@@ -173,7 +175,7 @@ export function Header() {
 
           {/* CTA + Mobile */}
           <div className="flex items-center gap-3">
-            <Link href="/booking">
+            <Link href="/booking" onClick={() => trackCTAClick('book_viewing_header', 'header')}>
               <Button className="hidden md:flex bg-burgundy hover:bg-burgundy-dark text-white rounded-sm px-6 shadow-md hover:shadow-lg transition-all">
                 Book a Viewing
               </Button>
@@ -186,6 +188,7 @@ export function Header() {
                   ? "text-burgundy hover:bg-burgundy/10"
                   : "text-white hover:bg-white/20"
               }`}
+              onClick={() => trackPhoneClick('header_mobile')}
             >
               <Phone className="w-5 h-5" />
             </a>
@@ -257,7 +260,7 @@ export function Header() {
                   </nav>
 
                   <div className="p-6 border-t border-marigold/20">
-                    <Link href="/booking" onClick={() => setMobileOpen(false)}>
+                    <Link href="/booking" onClick={() => { setMobileOpen(false); trackCTAClick('book_viewing_mobile', 'header'); }}>
                       <Button className="w-full bg-burgundy hover:bg-burgundy-dark text-white rounded-sm">
                         Book a Viewing
                       </Button>
@@ -265,6 +268,7 @@ export function Header() {
                     <a
                       href="tel:+9779851111191"
                       className="flex items-center justify-center gap-2 mt-3 text-burgundy hover:text-burgundy-dark transition-colors"
+                      onClick={() => trackPhoneClick('header_mobile_menu')}
                     >
                       <Phone className="w-4 h-4" />
                       +977-9851111191

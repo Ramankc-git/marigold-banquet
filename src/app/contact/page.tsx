@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { SectionHero } from '@/components/shared/section-hero';
+import { trackPhoneClick, trackCTAClick } from '@/lib/analytics';
 
 function BusinessHoursIndicator() {
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
@@ -99,6 +100,7 @@ export default function ContactPage() {
 
       if (res.ok) {
         setSubmitted(true);
+        trackCTAClick('contact_form_submit', 'contact');
       }
     } catch (err) {
       console.error('Contact form submission failed:', err);
@@ -143,6 +145,7 @@ export default function ContactPage() {
               <a
                 href="tel:+9779851111191"
                 className="text-marigold-dark hover:text-marigold-dark/80 font-medium text-lg transition-colors"
+                onClick={() => trackPhoneClick('contact_page')}
               >
                 +977-9851111191
               </a>
@@ -168,6 +171,7 @@ export default function ContactPage() {
               <a
                 href="mailto:info@marigoldbanquet.com.np"
                 className="text-marigold-dark hover:text-marigold-dark/80 font-medium transition-colors break-all"
+                onClick={() => trackCTAClick('email_click', 'contact')}
               >
                 info@marigoldbanquet.com.np
               </a>
@@ -200,6 +204,7 @@ export default function ContactPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-marigold-dark hover:text-marigold-dark/80 text-sm font-medium inline-flex items-center gap-1 mt-2 transition-colors"
+                onClick={() => trackCTAClick('get_directions', 'contact')}
               >
                 <Navigation className="w-3.5 h-3.5" />
                 Get Directions

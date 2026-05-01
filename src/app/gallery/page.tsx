@@ -27,6 +27,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { SectionHero } from '@/components/shared/section-hero';
+import { trackGalleryView, trackInstagramClick, trackWhatsAppClick } from '@/lib/analytics';
 
 const categories = [
   'All',
@@ -227,11 +228,12 @@ export default function GalleryPage() {
                     role="button"
                     tabIndex={0}
                     aria-label={item.caption || "Gallery photo"}
-                    onClick={() => setSelectedItem(Number(item.id))}
+                    onClick={() => { setSelectedItem(Number(item.id)); trackGalleryView(item.category, item.source); }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         setSelectedItem(Number(item.id));
+                        trackGalleryView(item.category, item.source);
                       }
                     }}
                   >
@@ -458,6 +460,7 @@ export default function GalleryPage() {
                   href={`https://instagram.com/${instagramUsername}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackInstagramClick()}
                 >
                   <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full px-8">
                     <Instagram className="w-5 h-5 mr-2" />
@@ -597,6 +600,7 @@ export default function GalleryPage() {
               href={`https://wa.me/?text=${whatsappShareUrl}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackWhatsAppClick('gallery_share')}
             >
               <Button className="bg-green-600 hover:bg-green-700 text-white rounded-sm px-8 py-6 text-lg shadow-xl">
                 <MessageCircle className="w-5 h-5 mr-2" />

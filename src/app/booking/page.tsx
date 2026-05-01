@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { SectionHero } from '@/components/shared/section-hero';
 import { EnquiryForm } from '@/components/shared/enquiry-form';
 import { toast } from 'sonner';
+import { trackWhatsAppClick, trackPhoneClick, trackCTAClick, trackBookingStarted } from '@/lib/analytics';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -171,6 +172,7 @@ function VenueViewingForm() {
     setTimeout(() => {
       setSubmitted(true);
       setLoading(false);
+      trackBookingStarted('venue_viewing');
     }, 1000);
   };
 
@@ -318,7 +320,10 @@ export default function BookingPage() {
                   </p>
                   <Button
                     className="bg-marigold hover:bg-marigold-dark text-white rounded-sm px-8"
-                    onClick={() => toast.info('Brochure download will be available soon!')}
+                    onClick={() => {
+                      toast.info('Brochure download will be available soon!');
+                      trackCTAClick('download_brochure', 'booking');
+                    }}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download Brochure (PDF)
@@ -342,6 +347,7 @@ export default function BookingPage() {
                     href="https://wa.me/9779851111191?text=Hello%20Marigold%20Banquet%2C%20I%20would%20like%20to%20enquire%20about%20booking%20your%20venue."
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackWhatsAppClick('booking_page')}
                   >
                     <Button className="bg-green-600 hover:bg-green-700 text-white rounded-sm px-8">
                       <MessageCircle className="w-4 h-4 mr-2" />

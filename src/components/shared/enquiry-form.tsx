@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
+import { trackEnquiry, trackWhatsAppClick } from "@/lib/analytics";
 
 interface EnquiryFormProps {
   variant?: "default" | "compact" | "booking";
@@ -76,6 +77,7 @@ export function EnquiryForm({
 
       if (res.ok) {
         setSubmitted(true);
+        trackEnquiry(eventType, data.get("hallPreference") as string | undefined);
       } else {
         setError("Something went wrong. Please try again or contact us on WhatsApp.");
       }
@@ -291,6 +293,7 @@ export function EnquiryForm({
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1"
+            onClick={() => trackWhatsAppClick("enquiry_form")}
           >
             <WhatsAppIcon className="w-4 h-4" />
             Chat on WhatsApp
