@@ -1,8 +1,15 @@
 import { apiResponse } from "@/lib/api-utils";
-import { clearAdminCookie } from "@/lib/auth";
 
 export async function POST() {
   const response = apiResponse({ message: "Logged out successfully" });
-  response.headers.set("Set-Cookie", clearAdminCookie());
+  response.cookies.set({
+    name: "marigold_admin_token",
+    value: "",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0, // Immediately expire
+  });
   return response;
 }

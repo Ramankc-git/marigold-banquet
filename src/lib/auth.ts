@@ -38,14 +38,6 @@ export async function getAdminSession(): Promise<AdminPayload | null> {
   return verifyAdminToken(token);
 }
 
-export function clearAdminCookie(): string {
-  return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
-}
-
-export function createAdminCookie(token: string): string {
-  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`;
-}
-
 // Role hierarchy for permission checks
 const ROLE_HIERARCHY: Record<string, number> = {
   super_admin: 3,

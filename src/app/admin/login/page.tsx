@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
 
           <div className="mt-6 pt-4 border-t border-gray-100 text-center">
             <p className="text-xs text-muted-foreground">
-              Default credentials: <span className="font-mono">admin@marigold.com.np</span> / <span className="font-mono">admin123</span>
+              Default credentials: <span className="font-mono">admin@marigoldbanquet.com.np</span> / <span className="font-mono">admin123</span>
             </p>
           </div>
         </div>
