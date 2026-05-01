@@ -158,9 +158,10 @@ export default function BlogPage() {
     try {
       const res = await fetch('/api/blogs?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.posts && data.posts.length > 0) {
-          setPosts(data.posts)
+        const json = await res.json()
+        const result = json.data
+        if (result?.posts) {
+          setPosts(result.posts)
         }
       }
     } catch {
@@ -223,9 +224,10 @@ export default function BlogPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.post) {
-            setPosts((prev) => [data.post, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setPosts((prev) => [created, ...prev])
           }
         }
       }

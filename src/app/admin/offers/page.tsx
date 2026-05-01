@@ -110,9 +110,10 @@ export default function OffersPage() {
     try {
       const res = await fetch('/api/offers?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.offers && data.offers.length > 0) {
-          setOffers(data.offers)
+        const json = await res.json()
+        const result = json.data
+        if (result?.offers) {
+          setOffers(result.offers)
         }
       }
     } catch {
@@ -171,9 +172,10 @@ export default function OffersPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.offer) {
-            setOffers((prev) => [data.offer, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setOffers((prev) => [created, ...prev])
           }
         }
       }

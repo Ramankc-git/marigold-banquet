@@ -125,9 +125,10 @@ export default function HallsPage() {
     try {
       const res = await fetch('/api/halls?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.halls && data.halls.length > 0) {
-          setHalls(data.halls)
+        const json = await res.json()
+        const halls = json.data
+        if (Array.isArray(halls)) {
+          setHalls(halls)
         }
       }
     } catch {
@@ -204,9 +205,10 @@ export default function HallsPage() {
           body: JSON.stringify(payload),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.hall) {
-            setHalls((prev) => [data.hall, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setHalls((prev) => [created, ...prev])
           }
         }
       }

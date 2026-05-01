@@ -206,9 +206,10 @@ export default function PackagesPage() {
     try {
       const res = await fetch('/api/packages?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.packages && data.packages.length > 0) {
-          setPackages(data.packages)
+        const json = await res.json()
+        const result = json.data
+        if (result?.packages) {
+          setPackages(result.packages)
         }
       }
     } catch {
@@ -285,9 +286,10 @@ export default function PackagesPage() {
           body: JSON.stringify(payload),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.package) {
-            setPackages((prev) => [data.package, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setPackages((prev) => [created, ...prev])
           }
         }
       }

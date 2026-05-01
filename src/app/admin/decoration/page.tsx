@@ -158,9 +158,10 @@ export default function DecorationPage() {
     try {
       const res = await fetch('/api/decorations?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.decorations && data.decorations.length > 0) {
-          setDecorations(data.decorations)
+        const json = await res.json()
+        const result = json.data
+        if (result?.themes) {
+          setDecorations(result.themes)
         }
       }
     } catch {
@@ -250,9 +251,10 @@ export default function DecorationPage() {
           body: JSON.stringify(payload),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.decoration) {
-            setDecorations((prev) => [data.decoration, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setDecorations((prev) => [created, ...prev])
           }
         }
       }

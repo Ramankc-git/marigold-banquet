@@ -148,9 +148,10 @@ export default function VendorsPage() {
     try {
       const res = await fetch('/api/vendors?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.vendors && data.vendors.length > 0) {
-          setVendors(data.vendors)
+        const json = await res.json()
+        const result = json.data
+        if (result?.vendors) {
+          setVendors(result.vendors)
         }
       }
     } catch {
@@ -208,9 +209,10 @@ export default function VendorsPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.vendor) {
-            setVendors((prev) => [data.vendor, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setVendors((prev) => [created, ...prev])
           }
         }
       }

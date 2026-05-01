@@ -156,9 +156,10 @@ export default function MenuPage() {
     try {
       const res = await fetch('/api/menu?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.items && data.items.length > 0) {
-          setItems(data.items)
+        const json = await res.json()
+        const result = json.data
+        if (result?.items) {
+          setItems(result.items)
         }
       }
     } catch {
@@ -220,9 +221,10 @@ export default function MenuPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.item) {
-            setItems((prev) => [data.item, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setItems((prev) => [created, ...prev])
           }
         }
       }

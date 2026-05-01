@@ -135,9 +135,10 @@ export default function FAQPage() {
     try {
       const res = await fetch('/api/faq?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.faqs && data.faqs.length > 0) {
-          setFaqs(data.faqs)
+        const json = await res.json()
+        const result = json.data
+        if (result?.faqs) {
+          setFaqs(result.faqs)
         }
       }
     } catch {
@@ -191,9 +192,10 @@ export default function FAQPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.faq) {
-            setFaqs((prev) => [data.faq, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setFaqs((prev) => [created, ...prev])
           }
         }
       }

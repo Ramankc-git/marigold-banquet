@@ -135,9 +135,10 @@ export default function EnquiriesPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter)
       const res = await fetch(`/api/enquiries?${params.toString()}`)
       if (res.ok) {
-        const data = await res.json()
-        if (data.enquiries && data.enquiries.length > 0) {
-          setEnquiries(data.enquiries)
+        const json = await res.json()
+        const result = json.data
+        if (result?.enquiries) {
+          setEnquiries(result.enquiries)
         }
       }
     } catch {

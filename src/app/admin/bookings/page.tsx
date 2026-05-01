@@ -102,9 +102,10 @@ export default function BookingsPage() {
       try {
         const res = await fetch('/api/bookings')
         if (res.ok) {
-          const data = await res.json()
-          if (data.bookings && data.bookings.length > 0) {
-            setBookings(data.bookings)
+          const json = await res.json()
+          const result = json.data
+          if (result?.bookings) {
+            setBookings(result.bookings)
           }
         }
       } catch {

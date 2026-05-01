@@ -207,21 +207,24 @@ export default function AdminDashboard() {
         ])
 
         if (enqRes.ok) {
-          const enqData = await enqRes.json()
-          if (enqData.enquiries && enqData.enquiries.length > 0) {
-            setEnquiries(enqData.enquiries.slice(0, 5))
+          const enqJson = await enqRes.json()
+          const enqResult = enqJson.data
+          if (enqResult?.enquiries) {
+            setEnquiries(enqResult.enquiries.slice(0, 5))
           }
         }
         if (bookRes.ok) {
-          const bookData = await bookRes.json()
-          if (bookData.bookings && bookData.bookings.length > 0) {
-            setBookings(bookData.bookings.slice(0, 5))
+          const bookJson = await bookRes.json()
+          const bookResult = bookJson.data
+          if (bookResult?.bookings) {
+            setBookings(bookResult.bookings.slice(0, 5))
           }
         }
         if (galRes.ok) {
-          const galData = await galRes.json()
-          if (galData.photos && galData.photos.length > 0) {
-            setGalleryCount(galData.photos.length)
+          const galJson = await galRes.json()
+          const galResult = galJson.data
+          if (galResult?.photos) {
+            setGalleryCount(galResult.photos.length)
           }
         }
       } catch {

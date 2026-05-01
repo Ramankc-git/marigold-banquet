@@ -95,9 +95,10 @@ export default function TeamPage() {
     try {
       const res = await fetch('/api/team?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.members && data.members.length > 0) {
-          setMembers(data.members)
+        const json = await res.json()
+        const result = json.data
+        if (result?.members) {
+          setMembers(result.members)
         }
       }
     } catch {
@@ -152,9 +153,10 @@ export default function TeamPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.member) {
-            setMembers((prev) => [data.member, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setMembers((prev) => [created, ...prev])
           }
         }
       }

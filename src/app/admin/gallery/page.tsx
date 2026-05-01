@@ -108,9 +108,10 @@ export default function GalleryPage() {
     try {
       const res = await fetch(`/api/gallery?all=true${activeCategory !== 'all' ? `&category=${activeCategory}` : ''}`)
       if (res.ok) {
-        const data = await res.json()
-        if (data.photos && data.photos.length > 0) {
-          setPhotos(data.photos)
+        const json = await res.json()
+        const result = json.data
+        if (result?.photos) {
+          setPhotos(result.photos)
         }
       }
     } catch {
@@ -137,9 +138,10 @@ export default function GalleryPage() {
         body: JSON.stringify(newPhoto),
       })
       if (res.ok) {
-        const data = await res.json()
-        if (data.photo) {
-          setPhotos((prev) => [data.photo, ...prev])
+        const json = await res.json()
+        const created = json.data
+        if (created) {
+          setPhotos((prev) => [created, ...prev])
         }
         setAddDialogOpen(false)
         setNewPhoto({ url: '', caption: '', category: 'weddings' })
@@ -190,10 +192,17 @@ export default function GalleryPage() {
         body: JSON.stringify({ id: editingPhoto.id, ...editForm }),
       })
       if (res.ok) {
-        const data = await res.json()
-        setPhotos((prev) =>
-          prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
-        )
+        const json = await res.json()
+        const updated = json.data
+        if (updated) {
+          setPhotos((prev) =>
+            prev.map((p) => (p.id === editingPhoto.id ? updated : p))
+          )
+        } else {
+          setPhotos((prev) =>
+            prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
+          )
+        }
       }
     } catch {
       setPhotos((prev) =>

@@ -138,9 +138,10 @@ export default function TestimonialsPage() {
     try {
       const res = await fetch('/api/testimonials?all=true')
       if (res.ok) {
-        const data = await res.json()
-        if (data.testimonials && data.testimonials.length > 0) {
-          setTestimonials(data.testimonials)
+        const json = await res.json()
+        const testimonials = json.data
+        if (Array.isArray(testimonials)) {
+          setTestimonials(testimonials)
         }
       }
     } catch {
@@ -200,9 +201,10 @@ export default function TestimonialsPage() {
           body: JSON.stringify(form),
         })
         if (res.ok) {
-          const data = await res.json()
-          if (data.testimonial) {
-            setTestimonials((prev) => [data.testimonial, ...prev])
+          const json = await res.json()
+          const created = json.data
+          if (created) {
+            setTestimonials((prev) => [created, ...prev])
           }
         }
       }

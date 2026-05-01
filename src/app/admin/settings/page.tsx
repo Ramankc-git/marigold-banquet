@@ -63,9 +63,10 @@ export default function SettingsPage() {
       try {
         const res = await fetch('/api/settings')
         if (res.ok) {
-          const data = await res.json()
-          if (data.settings && Object.keys(data.settings).length > 0) {
-            setSettings({ ...defaultSettings, ...data.settings })
+          const json = await res.json()
+          const result = json.data
+          if (result?.settings && Object.keys(result.settings).length > 0) {
+            setSettings({ ...defaultSettings, ...result.settings })
           }
         }
       } catch {
