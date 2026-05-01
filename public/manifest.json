@@ -1,0 +1,27 @@
+{
+  "name": "Marigold Banquet Hall & Party Palace",
+  "short_name": "Marigold Banquet",
+  "description": "Premium venue for weddings, parties & corporate events in Tokha-07, Gairigaun, Kathmandu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#7B2D3F",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["business", "events", "lifestyle"],
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

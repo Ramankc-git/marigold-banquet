@@ -137,6 +137,36 @@ export default function BlogPostPage() {
     fetchPost();
   }, [slug]);
 
+  // BlogPosting structured data for SEO
+  const blogPostingJsonLd = post ? {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt || post.content.substring(0, 160),
+    author: {
+      "@type": "Organization",
+      name: post.author || "Marigold Team",
+      url: "https://marigoldbanquet.com.np",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Marigold Banquet Hall & Party Palace",
+      url: "https://marigoldbanquet.com.np",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://marigoldbanquet.com.np/logo.svg",
+      },
+    },
+    datePublished: post.publishedAt || post.createdAt,
+    dateModified: post.createdAt,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://marigoldbanquet.com.np/blog/${slug}`,
+    },
+    image: "https://marigoldbanquet.com.np/og-image.png",
+    wordCount: post.content.split(/\s+/).length,
+  } : null;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-32">
@@ -168,6 +198,13 @@ export default function BlogPostPage() {
 
   return (
     <div className="pt-28 pb-16">
+      {/* BlogPosting Structured Data */}
+      {blogPostingJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingJsonLd) }}
+        />
+      )}
       <article className="container mx-auto px-4 max-w-4xl">
         {/* Back link */}
         <Link

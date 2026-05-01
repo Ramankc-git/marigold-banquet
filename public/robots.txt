@@ -4,4 +4,5 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: /sitemap.xml
+# Sitemaps
+Sitemap: https://marigoldbanquet.com.np/sitemap.xml
