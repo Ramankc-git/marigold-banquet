@@ -10,19 +10,28 @@ const COOKIE_NAME = "marigold_admin_token";
 // Routes that don't need auth
 const PUBLIC_ROUTES = ["/admin/login"];
 
-// API routes that need auth (all mutations + sensitive reads)
+// Public API routes that anyone can access (form submissions from the website)
+const PUBLIC_API_ROUTES = [
+  { method: "POST", pattern: /^\/api\/(enquiries|contact)$/ },
+  { method: "POST", pattern: /^\/api\/bookings$/ },
+];
+
+// API routes that need auth (admin-only operations)
 const PROTECTED_API_PATTERNS = [
-  { method: "POST", pattern: /^\/api\/(enquiries|bookings|gallery|blogs|settings|contact)/ },
+  // Admin reads (sensitive data with PII)
+  { method: "GET", pattern: /^\/api\/(enquiries|bookings)(\?|$|\/)/ },
+  { method: "GET", pattern: /^\/api\/settings/ },
+  // Admin mutations
   { method: "PATCH", pattern: /^\/api\/(enquiries|bookings|blogs)/ },
   { method: "PUT", pattern: /^\/api\/settings/ },
   { method: "DELETE", pattern: /^\/api\/(gallery|blogs)/ },
-  // Sensitive reads
-  { method: "GET", pattern: /^\/api\/(enquiries|bookings)(\?|$)/ },
-  { method: "GET", pattern: /^\/api\/settings/ },
+  // Gallery & blog admin
+  { method: "POST", pattern: /^\/api\/(gallery|blogs)$/ },
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
   // Add security headers to all responses
   const response = NextResponse.next();
@@ -51,18 +60,24 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Allow public API routes (enquiry form, contact form, booking form)
+  const isPublicApi = PUBLIC_API_ROUTES.some(
+    (p) => p.method === method && p.pattern.test(pathname)
+  );
+  if (isPublicApi) {
+    return response;
+  }
+
   // Check if this is a protected API route
-  const method = request.method;
   const isProtectedApi = PROTECTED_API_PATTERNS.some(
     (p) => p.method === method && p.pattern.test(pathname)
   );
 
   if (isProtectedApi) {
-    // For API routes, check for admin token OR API key header
     const token = request.cookies.get(COOKIE_NAME)?.value;
     const apiKey = request.headers.get("x-api-key");
 
-    if (apiKey === process.env.ADMIN_API_KEY) {
+    if (apiKey && apiKey === process.env.ADMIN_API_KEY) {
       return response;
     }
 
@@ -98,5 +113,6 @@ export const config = {
     "/api/gallery/:path*",
     "/api/blogs/:path*",
     "/api/settings/:path*",
+    "/api/contact",
   ],
 };
