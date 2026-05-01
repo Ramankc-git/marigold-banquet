@@ -618,19 +618,19 @@ async function seed() {
 
   // Create gallery photos
   const galleryPhotos = [
-    { url: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800", caption: "Grand Wedding Setup", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 1 },
-    { url: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800", caption: "Floral Mandap Decoration", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 2 },
-    { url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800", caption: "Wedding Reception Dance Floor", category: "weddings", eventDate: "2025-02-28", isActive: true, order: 3 },
-    { url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800", caption: "Corporate Conference Setup", category: "corporate", eventDate: "2025-02-20", isActive: true, order: 4 },
-    { url: "https://images.unsplash.com/photo-1505236858219-8359d29d0357?w=800", caption: "Corporate Seminar Stage", category: "corporate", eventDate: "2025-01-18", isActive: true, order: 5 },
-    { url: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800", caption: "Birthday Party - Tropical Theme", category: "parties", eventDate: "2025-03-01", isActive: true, order: 6 },
-    { url: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800", caption: "Kids Birthday Celebration", category: "parties", eventDate: "2025-01-15", isActive: true, order: 7 },
-    { url: "https://images.unsplash.com/photo-1555244162-803834f70033?w=800", caption: "Nepali Thali Spread", category: "food", isActive: true, order: 8 },
-    { url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800", caption: "Buffet Counter Setup", category: "food", isActive: true, order: 9 },
-    { url: "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800", caption: "Rose Gold Centerpiece", category: "decoration", isActive: true, order: 10 },
-    { url: "https://images.unsplash.com/photo-1522413452208-996ff3f3e740?w=800", caption: "Marigold Flower Arch", category: "decoration", isActive: true, order: 11 },
-    { url: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800", caption: "Main Banquet Hall View", category: "venue_spaces", isActive: true, order: 12 },
-    { url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800", caption: "Garden Terrace View", category: "venue_spaces", isActive: true, order: 13 },
+    { url: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800", caption: "Grand Wedding Setup", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 1, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800", caption: "Floral Mandap Decoration", category: "weddings", eventDate: "2025-03-15", isActive: true, order: 2, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800", caption: "Wedding Reception Dance Floor", category: "weddings", eventDate: "2025-02-28", isActive: true, order: 3, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800", caption: "Corporate Conference Setup", category: "corporate", eventDate: "2025-02-20", isActive: true, order: 4, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1505236858219-8359d29d0357?w=800", caption: "Corporate Seminar Stage", category: "corporate", eventDate: "2025-01-18", isActive: true, order: 5, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800", caption: "Birthday Party - Tropical Theme", category: "parties", eventDate: "2025-03-01", isActive: true, order: 6, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=800", caption: "Kids Birthday Celebration", category: "parties", eventDate: "2025-01-15", isActive: true, order: 7, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1555244162-803834f70033?w=800", caption: "Nepali Thali Spread", category: "food", isActive: true, order: 8, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800", caption: "Buffet Counter Setup", category: "food", isActive: true, order: 9, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1478146059778-26028b07395a?w=800", caption: "Rose Gold Centerpiece", category: "decoration", isActive: true, order: 10, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1522413452208-996ff3f3e740?w=800", caption: "Marigold Flower Arch", category: "decoration", isActive: true, order: 11, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800", caption: "Main Banquet Hall View", category: "venue_spaces", isActive: true, order: 12, source: "manual" },
+    { url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800", caption: "Garden Terrace View", category: "venue_spaces", isActive: true, order: 13, source: "manual" },
   ];
 
   for (const photo of galleryPhotos) {
@@ -775,6 +775,32 @@ async function seed() {
     });
   }
   console.log(`Created ${pages.length} page settings`);
+
+  // Create site settings including Instagram configuration
+  const siteSettings = [
+    { key: "businessName", value: "Marigold Banquet Hall & Party Palace" },
+    { key: "businessPhone", value: "+977-9851111191" },
+    { key: "businessEmail", value: "info@marigoldbanquet.com.np" },
+    { key: "businessAddress", value: "Tokha-07, Gairigaun, Kathmandu, Nepal" },
+    { key: "workingHours", value: "Sun-Sat: 6:00 AM - 11:00 PM" },
+    { key: "facebookUrl", value: "https://facebook.com/marigoldbanquet" },
+    { key: "instagramUrl", value: "https://instagram.com/marigoldbanquet" },
+    { key: "whatsappNumber", value: "+977-9851111191" },
+    { key: "instagramUsername", value: "marigoldbanquet" },
+    { key: "instagramAccessToken", value: "" },
+    { key: "seoDefaultTitle", value: "Marigold Banquet Hall & Party Palace | Premium Venue in Kathmandu" },
+    { key: "seoDefaultDescription", value: "Marigold Banquet Hall and Party Palace in Tokha-07, Kathmandu. Premium venue for weddings, parties & corporate events. In-house catering & decoration." },
+    { key: "seoDefaultKeywords", value: "banquet hall Kathmandu, wedding venue Nepal, party palace Tokha, event hall Gairigaun, corporate event venue" },
+  ];
+
+  for (const setting of siteSettings) {
+    await db.siteSetting.upsert({
+      where: { key: setting.key },
+      update: { value: setting.value },
+      create: { key: setting.key, value: setting.value },
+    });
+  }
+  console.log(`Created ${siteSettings.length} site settings`);
 
   console.log("\n✅ Seeding complete!");
 }

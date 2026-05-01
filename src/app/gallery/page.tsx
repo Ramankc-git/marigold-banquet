@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import {
   Camera,
   Play,
@@ -12,6 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ImageIcon,
+  Instagram,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,26 +38,35 @@ const categories = [
   'Venue Spaces',
 ];
 
-const galleryItems = [
-  { id: 1, category: 'Weddings', title: 'Royal Wedding Setup', gradient: 'from-burgundy-dark via-burgundy to-marigold-dark', height: 'h-72' },
-  { id: 2, category: 'Decoration', title: 'Floral Mandap', gradient: 'from-rose-gold via-pink-300 to-marigold-light', height: 'h-96' },
-  { id: 3, category: 'Food', title: 'Gourmet Platter', gradient: 'from-marigold via-amber-500 to-orange-500', height: 'h-64' },
-  { id: 4, category: 'Venue Spaces', title: 'Grand Hall', gradient: 'from-burgundy via-burgundy-light to-rose-gold', height: 'h-80' },
-  { id: 5, category: 'Weddings', title: 'Couple Entrance', gradient: 'from-marigold-dark via-burgundy to-burgundy-dark', height: 'h-72' },
-  { id: 6, category: 'Parties', title: 'Birthday Celebration', gradient: 'from-purple-500 via-pink-400 to-rose-gold', height: 'h-64' },
-  { id: 7, category: 'Corporate', title: 'Conference Setup', gradient: 'from-gray-700 via-gray-500 to-gray-300', height: 'h-80' },
-  { id: 8, category: 'Decoration', title: 'Rustic Setup', gradient: 'from-amber-700 via-amber-500 to-yellow-400', height: 'h-96' },
-  { id: 9, category: 'Food', title: 'Live Counter', gradient: 'from-red-700 via-burgundy to-marigold', height: 'h-64' },
-  { id: 10, category: 'Venue Spaces', title: 'Outdoor Garden', gradient: 'from-green-700 via-emerald-500 to-teal-400', height: 'h-72' },
-  { id: 11, category: 'Weddings', title: 'Reception Night', gradient: 'from-burgundy via-purple-800 to-marigold-dark', height: 'h-80' },
-  { id: 12, category: 'Parties', title: 'Festival Night', gradient: 'from-marigold via-rose-gold-light to-burgundy-light', height: 'h-64' },
-];
+const categoryMap: Record<string, string> = {
+  weddings: 'Weddings',
+  parties: 'Parties',
+  corporate: 'Corporate',
+  decoration: 'Decoration',
+  food: 'Food',
+  venue_spaces: 'Venue Spaces',
+};
 
-const videoPlaceholders = [
-  { id: 1, title: 'Wedding Highlights Reel', gradient: 'from-burgundy to-marigold' },
-  { id: 2, title: 'Venue Tour Walkthrough', gradient: 'from-rose-gold to-burgundy-light' },
-  { id: 3, title: 'Food & Decor Showcase', gradient: 'from-marigold-dark to-burgundy' },
-];
+interface GalleryPhoto {
+  id: string;
+  url: string;
+  caption?: string | null;
+  category: string;
+  eventDate?: string | null;
+  isActive: boolean;
+  order: number;
+  source: string;
+  instagramPermalink?: string | null;
+  instagramMediaId?: string | null;
+}
+
+interface GalleryVideo {
+  id: string;
+  youtubeUrl: string;
+  title: string;
+  category: string;
+  isActive: boolean;
+}
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -62,25 +75,90 @@ const fadeInUp = {
   transition: { duration: 0.6 },
 };
 
+// Extract YouTube video ID from URL
+function getYouTubeId(url: string): string | null {
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/
+  );
+  return match ? match[1] : null;
+}
+
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedItem, setSelectedItem] = useState<number | null>(null);
+  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [videos, setVideos] = useState<GalleryVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [instagramPhotos, setInstagramPhotos] = useState<GalleryPhoto[]>([]);
+  const [instagramUsername, setInstagramUsername] = useState('');
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+
+  // Fetch gallery data from API
+  const fetchGallery = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/gallery?limit=100');
+      if (res.ok) {
+        const json = await res.json();
+        const result = json.data;
+        if (result?.photos) {
+          setPhotos(result.photos);
+        }
+        if (result?.videos) {
+          setVideos(result.videos);
+        }
+      }
+    } catch {
+      // Will show empty state
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch Instagram section data
+  const fetchInstagram = useCallback(async () => {
+    try {
+      const res = await fetch('/api/instagram?limit=6');
+      if (res.ok) {
+        const json = await res.json();
+        const result = json.data;
+        if (result?.photos) {
+          setInstagramPhotos(result.photos);
+        }
+        if (result?.username) {
+          setInstagramUsername(result.username);
+        }
+      }
+    } catch {
+      // Instagram section is optional
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGallery();
+    fetchInstagram();
+  }, [fetchGallery, fetchInstagram]);
+
+  // Combine database photos with empty placeholders if none exist
+  const displayPhotos = photos.length > 0 ? photos : [];
 
   const filteredItems =
     activeCategory === 'All'
-      ? galleryItems
-      : galleryItems.filter((item) => item.category === activeCategory);
+      ? displayPhotos
+      : displayPhotos.filter(
+          (item) => categoryMap[item.category] === activeCategory || item.category === activeCategory
+        );
 
-  const selectedItemData = galleryItems.find((item) => item.id === selectedItem);
+  const selectedItemData = displayPhotos.find((item) => item.id === selectedItem?.toString());
 
   const navigateItem = (direction: 'prev' | 'next') => {
     if (selectedItem === null) return;
-    const currentIndex = filteredItems.findIndex((item) => item.id === selectedItem);
+    const currentIndex = filteredItems.findIndex((item) => item.id === selectedItem?.toString());
     if (currentIndex === -1) return;
     if (direction === 'prev' && currentIndex > 0) {
-      setSelectedItem(filteredItems[currentIndex - 1].id);
+      setSelectedItem(Number(filteredItems[currentIndex - 1].id));
     } else if (direction === 'next' && currentIndex < filteredItems.length - 1) {
-      setSelectedItem(filteredItems[currentIndex + 1].id);
+      setSelectedItem(Number(filteredItems[currentIndex + 1].id));
     }
   };
 
@@ -124,58 +202,97 @@ export default function GalleryPage() {
       {/* Photo Grid - Masonry Style */}
       <section className="py-16 px-4 bg-ivory">
         <div className="container mx-auto max-w-6xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="columns-2 md:columns-3 gap-4 space-y-4"
-            >
-              {filteredItems.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  className="break-inside-avoid cursor-pointer group"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={item.title || "Gallery photo"}
-                  onClick={() => setSelectedItem(item.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedItem(item.id);
-                    }
-                  }}
-                >
-                  <div
-                    className={`${item.height} bg-gradient-to-br ${item.gradient} rounded-lg flex flex-col items-center justify-center relative overflow-hidden`}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-burgundy animate-spin" />
+              <span className="ml-3 text-muted-foreground">Loading gallery...</span>
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCategory}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="columns-2 md:columns-3 gap-4 space-y-4"
+              >
+                {filteredItems.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: i * 0.05 }}
+                    className="break-inside-avoid cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={item.caption || "Gallery photo"}
+                    onClick={() => setSelectedItem(Number(item.id))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedItem(Number(item.id));
+                      }
+                    }}
                   >
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
-                    <Camera className="w-10 h-10 text-white/40 group-hover:scale-110 transition-transform duration-300" />
-                    {/* Overlay info on hover */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
-                      <p className="text-white font-serif text-sm font-medium">{item.title}</p>
-                      <Badge className="mt-1 bg-white/20 text-white border-0 text-xs">
-                        {item.category}
-                      </Badge>
-                    </div>
-                    {/* Heart icon */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Heart className="w-4 h-4 text-white" />
+                    <div className="relative rounded-lg overflow-hidden group">
+                      {item.url ? (
+                        <Image
+                          src={item.url}
+                          alt={item.caption || 'Gallery photo'}
+                          width={400}
+                          height={item.source === 'instagram' ? 400 : 300}
+                          className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="h-64 bg-gradient-to-br from-burgundy-dark via-burgundy to-marigold-dark flex items-center justify-center">
+                          <Camera className="w-10 h-10 text-white/40" />
+                        </div>
+                      )}
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
+                      {/* Overlay info on hover */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
+                        <p className="text-white font-serif text-sm font-medium">
+                          {item.caption || 'Gallery Photo'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge className="bg-white/20 text-white border-0 text-xs">
+                            {categoryMap[item.category] || item.category}
+                          </Badge>
+                          {item.source === 'instagram' && (
+                            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs flex items-center gap-1">
+                              <Instagram className="w-3 h-3" />
+                              Instagram
+                            </Badge>
+                          )}
+                        </div>
                       </div>
+                      {/* Instagram icon for instagram-sourced photos */}
+                      {item.source === 'instagram' && (
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                            <Instagram className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      )}
+                      {/* Heart icon for non-instagram photos */}
+                      {item.source !== 'instagram' && (
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                            <Heart className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          )}
 
-          {filteredItems.length === 0 && (
+          {filteredItems.length === 0 && !loading && (
             <div className="text-center py-16">
               <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No photos in this category yet. Check back soon!</p>
@@ -188,16 +305,26 @@ export default function GalleryPage() {
       <Dialog open={selectedItem !== null} onOpenChange={(open) => !open && setSelectedItem(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black border-0">
           <DialogHeader className="sr-only">
-            <DialogTitle>{selectedItemData?.title || 'Gallery Image'}</DialogTitle>
+            <DialogTitle>{selectedItemData?.caption || 'Gallery Image'}</DialogTitle>
             <DialogDescription>Gallery image detail view</DialogDescription>
           </DialogHeader>
           {selectedItemData && (
             <div className="relative">
-              <div
-                className={`w-full min-h-[400px] md:min-h-[500px] bg-gradient-to-br ${selectedItemData.gradient} flex items-center justify-center`}
-              >
-                <Camera className="w-20 h-20 text-white/50" />
-              </div>
+              {selectedItemData.url ? (
+                <div className="w-full min-h-[400px] md:min-h-[500px] relative bg-black">
+                  <Image
+                    src={selectedItemData.url}
+                    alt={selectedItemData.caption || 'Gallery image'}
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="w-full min-h-[400px] md:min-h-[500px] bg-gradient-to-br from-burgundy-dark via-burgundy to-marigold-dark flex items-center justify-center">
+                  <Camera className="w-20 h-20 text-white/50" />
+                </div>
+              )}
               {/* Navigation arrows */}
               <button
                 onClick={() => navigateItem('prev')}
@@ -216,17 +343,132 @@ export default function GalleryPage() {
               {/* Info bar */}
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between">
                 <div>
-                  <p className="text-white font-serif text-lg font-medium">{selectedItemData.title}</p>
-                  <Badge className="bg-white/20 text-white border-0 text-xs mt-1">
-                    {selectedItemData.category}
-                  </Badge>
+                  <p className="text-white font-serif text-lg font-medium">
+                    {selectedItemData.caption || 'Gallery Photo'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className="bg-white/20 text-white border-0 text-xs">
+                      {categoryMap[selectedItemData.category] || selectedItemData.category}
+                    </Badge>
+                    {selectedItemData.source === 'instagram' && selectedItemData.instagramPermalink && (
+                      <a
+                        href={selectedItemData.instagramPermalink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-pink-300 hover:text-pink-200"
+                      >
+                        <Instagram className="w-3 h-3" />
+                        View on Instagram
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-                <Heart className="w-6 h-6 text-white cursor-pointer hover:text-red-400 transition-colors" />
+                {selectedItemData.instagramPermalink ? (
+                  <a
+                    href={selectedItemData.instagramPermalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center hover:opacity-80 transition-opacity"
+                  >
+                    <Instagram className="w-5 h-5 text-white" />
+                  </a>
+                ) : (
+                  <Heart className="w-6 h-6 text-white cursor-pointer hover:text-red-400 transition-colors" />
+                )}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Instagram Feed Section */}
+      {instagramPhotos.length > 0 && (
+        <section className="py-20 px-4 bg-white">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div {...fadeInUp} className="text-center mb-12">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Instagram className="w-8 h-8 text-pink-500" />
+                <h2 className="font-serif text-3xl md:text-5xl font-bold text-burgundy">
+                  Follow Us on Instagram
+                </h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                {instagramUsername
+                  ? `Follow @${instagramUsername} for the latest updates, behind-the-scenes, and event highlights`
+                  : 'Stay connected with us for the latest event highlights and behind-the-scenes moments'}
+              </p>
+              <div className="section-divider mt-6" />
+            </motion.div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {instagramPhotos.map((photo, i) => (
+                <motion.div
+                  key={photo.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="group cursor-pointer"
+                  onClick={() => setSelectedItem(Number(photo.id))}
+                >
+                  <div className="relative aspect-square rounded-lg overflow-hidden">
+                    {photo.url ? (
+                      <Image
+                        src={photo.url}
+                        alt={photo.caption || 'Instagram photo'}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                        <Instagram className="w-8 h-8 text-white/60" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-3">
+                        {photo.instagramPermalink && (
+                          <a
+                            href={photo.instagramPermalink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40"
+                          >
+                            <ExternalLink className="w-5 h-5 text-white" />
+                          </a>
+                        )}
+                        <Heart className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  {photo.caption && (
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                      {photo.caption}
+                    </p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+
+            {instagramUsername && (
+              <div className="text-center mt-8">
+                <a
+                  href={`https://instagram.com/${instagramUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full px-8">
+                    <Instagram className="w-5 h-5 mr-2" />
+                    Follow @${instagramUsername}
+                  </Button>
+                </a>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Video Gallery */}
       <section className="py-20 px-4 bg-white">
@@ -242,29 +484,103 @@ export default function GalleryPage() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {videoPlaceholders.map((video, i) => (
-              <motion.div
-                key={video.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.15 }}
-              >
-                <div
-                  className={`aspect-video bg-gradient-to-br ${video.gradient} rounded-lg flex flex-col items-center justify-center group cursor-pointer relative overflow-hidden`}
-                >
-                  <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Play className="w-8 h-8 text-white ml-1" />
-                  </div>
-                  <p className="text-white font-serif text-sm mt-3 font-medium">{video.title}</p>
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-                </div>
-              </motion.div>
-            ))}
+            {videos.length > 0 ? (
+              videos.map((video, i) => {
+                const ytId = getYouTubeId(video.youtubeUrl);
+                const thumbnailUrl = ytId
+                  ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+                  : null;
+                return (
+                  <motion.div
+                    key={video.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.15 }}
+                  >
+                    <div
+                      className="aspect-video rounded-lg overflow-hidden group cursor-pointer relative"
+                      onClick={() => setActiveVideo(video.youtubeUrl)}
+                    >
+                      {thumbnailUrl ? (
+                        <Image
+                          src={thumbnailUrl}
+                          alt={video.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-burgundy to-marigold flex items-center justify-center">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <Play className="w-8 h-8 text-white ml-1" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <p className="text-white font-serif text-sm font-medium drop-shadow-lg">
+                          {video.title}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              // Default placeholder videos
+              <>
+                {[
+                  { id: 1, title: 'Wedding Highlights Reel', gradient: 'from-burgundy to-marigold' },
+                  { id: 2, title: 'Venue Tour Walkthrough', gradient: 'from-rose-gold to-burgundy-light' },
+                  { id: 3, title: 'Food & Decor Showcase', gradient: 'from-marigold-dark to-burgundy' },
+                ].map((video, i) => (
+                  <motion.div
+                    key={video.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.15 }}
+                  >
+                    <div
+                      className={`aspect-video bg-gradient-to-br ${video.gradient} rounded-lg flex flex-col items-center justify-center group cursor-pointer relative overflow-hidden`}
+                    >
+                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <Play className="w-8 h-8 text-white ml-1" />
+                      </div>
+                      <p className="text-white font-serif text-sm mt-3 font-medium">{video.title}</p>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                    </div>
+                  </motion.div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </section>
+
+      {/* YouTube Video Dialog */}
+      <Dialog open={activeVideo !== null} onOpenChange={(open) => !open && setActiveVideo(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black border-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Video Player</DialogTitle>
+            <DialogDescription>Event video playback</DialogDescription>
+          </DialogHeader>
+          {activeVideo && (
+            <div className="aspect-video">
+              <iframe
+                src={`${activeVideo.replace('watch?v=', 'embed/')}?autoplay=1`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Share CTA */}
       <section className="py-20 px-4 bg-gradient-to-br from-burgundy via-burgundy-dark to-burgundy text-white">

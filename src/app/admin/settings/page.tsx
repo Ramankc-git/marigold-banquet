@@ -12,6 +12,9 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
+  Instagram,
+  Key,
+  HelpCircle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,6 +34,9 @@ interface SiteSettings {
   facebookUrl: string
   instagramUrl: string
   whatsappNumber: string
+  // Instagram Integration
+  instagramUsername: string
+  instagramAccessToken: string
   // SEO Defaults
   seoDefaultTitle: string
   seoDefaultDescription: string
@@ -46,6 +52,8 @@ const defaultSettings: SiteSettings = {
   facebookUrl: 'https://facebook.com/marigoldbanquet',
   instagramUrl: 'https://instagram.com/marigoldbanquet',
   whatsappNumber: '+977-9851111191',
+  instagramUsername: 'marigoldbanquet',
+  instagramAccessToken: '',
   seoDefaultTitle: 'Marigold Banquet Hall & Party Palace | Premium Venue in Kathmandu',
   seoDefaultDescription:
     'Marigold Banquet Hall and Party Palace in Tokha-07, Kathmandu. Premium venue for weddings, parties & corporate events. In-house catering & decoration.',
@@ -261,6 +269,85 @@ export default function SettingsPage() {
               Include country code. This will be used for the WhatsApp floating button.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Instagram Integration */}
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg font-serif text-burgundy flex items-center gap-2">
+            <Instagram className="w-5 h-5 text-pink-500" />
+            Instagram Integration
+          </CardTitle>
+          <CardDescription>
+            Connect your Instagram account to automatically sync photos to your gallery
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ig-username" className="flex items-center gap-2">
+              <Instagram className="w-3.5 h-3.5 text-muted-foreground" />
+              Instagram Username
+            </Label>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">@</span>
+              <Input
+                id="ig-username"
+                placeholder="marigoldbanquet"
+                value={settings.instagramUsername}
+                onChange={(e) => updateField('instagramUsername', e.target.value.replace('@', ''))}
+                className="flex-1"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your Instagram username without the @ symbol. Used to display your Instagram feed on the gallery page.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ig-token" className="flex items-center gap-2">
+              <Key className="w-3.5 h-3.5 text-muted-foreground" />
+              Instagram Graph API Access Token
+            </Label>
+            <Input
+              id="ig-token"
+              type="password"
+              placeholder="IGQVJ..."
+              value={settings.instagramAccessToken}
+              onChange={(e) => updateField('instagramAccessToken', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Required for automatic sync from Instagram. Only needed for Business/Creator accounts.
+              You can still import photos manually by URL without this token.
+            </p>
+          </div>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <HelpCircle className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-semibold text-purple-800 mb-2">
+                    How to set up Instagram auto-sync:
+                  </h4>
+                  <ol className="text-xs text-purple-700 space-y-1.5 list-decimal list-inside">
+                    <li>Convert your Instagram account to a Business or Creator account (Settings &gt; Account &gt; Switch to Professional Account)</li>
+                    <li>Link your Instagram account to a Facebook Page</li>
+                    <li>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="underline text-purple-600 hover:text-purple-800">developers.facebook.com</a> and create a new app</li>
+                    <li>Add the Instagram Basic Display product to your app</li>
+                    <li>Generate a User Access Token with the <code className="bg-purple-100 px-1 rounded">instagram_graph_user_media</code> permission</li>
+                    <li>Paste the access token above and save settings</li>
+                    <li>Go to Gallery Manager and click &quot;Import from Instagram&quot; to sync your photos</li>
+                  </ol>
+                  <Separator className="my-3 bg-purple-200" />
+                  <p className="text-xs text-purple-600">
+                    <strong>No Business account?</strong> You can still import Instagram photos by pasting individual post URLs
+                    in the Gallery Manager. Just click &quot;Import from Instagram&quot; and use the &quot;Import by Post URL&quot; method.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </CardContent>
       </Card>
 

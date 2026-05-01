@@ -74,6 +74,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for duplicate Instagram media
+    if (data.instagramMediaId) {
+      const existing = await db.galleryPhoto.findFirst({
+        where: { instagramMediaId: data.instagramMediaId },
+      });
+      if (existing) {
+        return apiError("This Instagram post has already been imported", 409);
+      }
+    }
+
     const photo = await db.galleryPhoto.create({
       data: {
         url: data.url,
@@ -82,6 +92,9 @@ export async function POST(req: NextRequest) {
         eventDate: data.eventDate || null,
         isActive: data.isActive ?? true,
         order: data.order ?? 0,
+        source: data.source || "manual",
+        instagramPermalink: data.instagramPermalink || null,
+        instagramMediaId: data.instagramMediaId || null,
       },
     });
 

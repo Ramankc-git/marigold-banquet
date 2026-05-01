@@ -8,6 +8,13 @@ import {
   Edit,
   RefreshCw,
   ExternalLink,
+  Instagram,
+  Download,
+  Link2,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Settings,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +26,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -29,6 +37,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Separator } from '@/components/ui/separator'
 
 interface GalleryPhoto {
   id: string
@@ -38,6 +47,9 @@ interface GalleryPhoto {
   eventDate?: string | null
   isActive: boolean
   order: number
+  source: string
+  instagramPermalink?: string | null
+  instagramMediaId?: string | null
 }
 
 const categories = [
@@ -59,21 +71,6 @@ const categoryColors: Record<string, string> = {
   venue_spaces: 'bg-teal-100 text-teal-800 border-teal-200',
 }
 
-const mockPhotos: GalleryPhoto[] = [
-  { id: '1', url: '', caption: 'Grand Wedding Setup', category: 'weddings', eventDate: '2026-03-15', isActive: true, order: 1 },
-  { id: '2', url: '', caption: 'Floral Mandap Decoration', category: 'weddings', eventDate: '2026-03-15', isActive: true, order: 2 },
-  { id: '3', url: '', caption: 'Corporate Conference Setup', category: 'corporate', eventDate: '2026-02-20', isActive: true, order: 3 },
-  { id: '4', url: '', caption: 'Birthday Party - Tropical Theme', category: 'parties', eventDate: '2026-03-01', isActive: true, order: 4 },
-  { id: '5', url: '', caption: 'Nepali Thali Spread', category: 'food', eventDate: null, isActive: true, order: 5 },
-  { id: '6', url: '', caption: 'Rose Gold Centerpiece', category: 'decoration', eventDate: null, isActive: true, order: 6 },
-  { id: '7', url: '', caption: 'Main Banquet Hall View', category: 'venue_spaces', eventDate: null, isActive: true, order: 7 },
-  { id: '8', url: '', caption: 'Engagement Ceremony', category: 'weddings', eventDate: '2026-02-28', isActive: true, order: 8 },
-  { id: '9', url: '', caption: 'Kids Birthday Party', category: 'parties', eventDate: '2026-01-15', isActive: true, order: 9 },
-  { id: '10', url: '', caption: 'Buffet Counter Setup', category: 'food', eventDate: null, isActive: true, order: 10 },
-  { id: '11', url: '', caption: 'Marigold Flower Arch', category: 'decoration', eventDate: null, isActive: true, order: 11 },
-  { id: '12', url: '', caption: 'Garden Terrace View', category: 'venue_spaces', eventDate: null, isActive: true, order: 12 },
-]
-
 const gradientPlaceholders = [
   'from-pink-400 to-rose-400',
   'from-amber-400 to-orange-400',
@@ -84,12 +81,21 @@ const gradientPlaceholders = [
 ]
 
 export default function GalleryPage() {
-  const [photos, setPhotos] = useState<GalleryPhoto[]>(mockPhotos)
+  const [photos, setPhotos] = useState<GalleryPhoto[]>([])
   const [activeCategory, setActiveCategory] = useState('all')
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [instagramDialogOpen, setInstagramDialogOpen] = useState(false)
+  const [instagramSettingsDialogOpen, setInstagramSettingsDialogOpen] = useState(false)
   const [editingPhoto, setEditingPhoto] = useState<GalleryPhoto | null>(null)
   const [loading, setLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{
+    success: boolean
+    message: string
+    imported?: number
+    skipped?: number
+  } | null>(null)
   const [newPhoto, setNewPhoto] = useState({
     url: '',
     caption: '',
@@ -102,6 +108,17 @@ export default function GalleryPage() {
     eventDate: '',
     isActive: true,
   })
+  const [instagramImport, setInstagramImport] = useState({
+    postUrl: '',
+    category: 'weddings',
+  })
+  const [instagramBulkUrls, setInstagramBulkUrls] = useState('')
+  const [instagramSettings, setInstagramSettings] = useState({
+    username: '',
+    accessToken: '',
+    category: 'weddings',
+  })
+  const [savingSettings, setSavingSettings] = useState(false)
 
   const fetchPhotos = useCallback(async () => {
     setLoading(true)
@@ -115,15 +132,35 @@ export default function GalleryPage() {
         }
       }
     } catch {
-      // Use mock data
+      // Use empty state
     } finally {
       setLoading(false)
     }
   }, [activeCategory])
 
+  // Also fetch Instagram settings
+  const fetchInstagramSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/instagram?limit=1')
+      if (res.ok) {
+        const json = await res.json()
+        const result = json.data
+        if (result?.username) {
+          setInstagramSettings((prev) => ({ ...prev, username: result.username }))
+        }
+      }
+    } catch {
+      // Settings fetch failed
+    }
+  }, [])
+
   useEffect(() => {
     fetchPhotos()
   }, [fetchPhotos])
+
+  useEffect(() => {
+    fetchInstagramSettings()
+  }, [fetchInstagramSettings])
 
   const filteredPhotos = activeCategory === 'all'
     ? photos
@@ -135,7 +172,7 @@ export default function GalleryPage() {
       const res = await fetch('/api/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPhoto),
+        body: JSON.stringify({ ...newPhoto, source: 'manual' }),
       })
       if (res.ok) {
         const json = await res.json()
@@ -147,7 +184,6 @@ export default function GalleryPage() {
         setNewPhoto({ url: '', caption: '', category: 'weddings' })
       }
     } catch {
-      // Add locally anyway
       const photo: GalleryPhoto = {
         id: `local-${Date.now()}`,
         url: newPhoto.url,
@@ -155,6 +191,7 @@ export default function GalleryPage() {
         category: newPhoto.category,
         isActive: true,
         order: 0,
+        source: 'manual',
       }
       setPhotos((prev) => [photo, ...prev])
       setAddDialogOpen(false)
@@ -213,6 +250,159 @@ export default function GalleryPage() {
     setEditingPhoto(null)
   }
 
+  // ── Instagram Sync with Graph API ──
+  const handleInstagramSync = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync_graph_api',
+          accessToken: instagramSettings.accessToken || undefined,
+          category: instagramSettings.category,
+          limit: 24,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult({
+          success: true,
+          message: `Synced ${json.data.synced} photos from Instagram (@${json.data.username})`,
+          imported: json.data.synced,
+          skipped: json.data.skipped,
+        })
+        fetchPhotos()
+      } else {
+        setSyncResult({
+          success: false,
+          message: json.error || 'Failed to sync from Instagram',
+        })
+      }
+    } catch {
+      setSyncResult({
+        success: false,
+        message: 'Network error. Please try again.',
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // ── Import from single Instagram post URL ──
+  const handleInstagramUrlImport = async () => {
+    if (!instagramImport.postUrl) return
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'import_url',
+          postUrl: instagramImport.postUrl,
+          category: instagramImport.category,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult({
+          success: true,
+          message: 'Instagram post imported successfully!',
+          imported: 1,
+        })
+        setInstagramImport({ postUrl: '', category: 'weddings' })
+        fetchPhotos()
+      } else {
+        setSyncResult({
+          success: false,
+          message: json.error || 'Failed to import Instagram post',
+        })
+      }
+    } catch {
+      setSyncResult({
+        success: false,
+        message: 'Network error. Please try again.',
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // ── Bulk import from multiple Instagram URLs ──
+  const handleBulkImport = async () => {
+    const urls = instagramBulkUrls
+      .split('\n')
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0)
+    if (urls.length === 0) return
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'import_urls_bulk',
+          urls,
+          category: instagramImport.category,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult({
+          success: true,
+          message: `Imported ${json.data.imported} of ${urls.length} Instagram posts`,
+          imported: json.data.imported,
+          skipped: json.data.failed,
+        })
+        setInstagramBulkUrls('')
+        fetchPhotos()
+      } else {
+        setSyncResult({
+          success: false,
+          message: json.error || 'Bulk import failed',
+        })
+      }
+    } catch {
+      setSyncResult({
+        success: false,
+        message: 'Network error. Please try again.',
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // ── Save Instagram settings to SiteSetting ──
+  const handleSaveInstagramSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const settingsToSave: Record<string, string> = {}
+      if (instagramSettings.username) {
+        settingsToSave.instagramUsername = instagramSettings.username
+      }
+      if (instagramSettings.accessToken) {
+        settingsToSave.instagramAccessToken = instagramSettings.accessToken
+      }
+      // Also update the Instagram URL
+      if (instagramSettings.username) {
+        settingsToSave.instagramUrl = `https://instagram.com/${instagramSettings.username}`
+      }
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: settingsToSave }),
+      })
+      setInstagramSettingsDialogOpen(false)
+    } catch {
+      // Handle error
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -220,10 +410,10 @@ export default function GalleryPage() {
         <div>
           <h2 className="text-2xl font-bold text-burgundy font-serif">Gallery Manager</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage your photo gallery across categories
+            Manage your photo gallery and sync from Instagram
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={fetchPhotos}
             variant="outline"
@@ -232,6 +422,14 @@ export default function GalleryPage() {
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+          <Button
+            onClick={() => setInstagramDialogOpen(true)}
+            size="sm"
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+          >
+            <Instagram className="w-4 h-4 mr-2" />
+            Import from Instagram
           </Button>
           <Button
             onClick={() => setAddDialogOpen(true)}
@@ -243,6 +441,28 @@ export default function GalleryPage() {
           </Button>
         </div>
       </div>
+
+      {/* Sync Result Banner */}
+      {syncResult && (
+        <Card className={`border-0 shadow-md ${syncResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <CardContent className="p-4 flex items-center gap-2">
+            {syncResult.success ? (
+              <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            )}
+            <span className={`text-sm font-medium ${syncResult.success ? 'text-green-800' : 'text-red-800'}`}>
+              {syncResult.message}
+            </span>
+            <button
+              onClick={() => setSyncResult(null)}
+              className="ml-auto text-muted-foreground hover:text-foreground"
+            >
+              &times;
+            </button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Category Tabs */}
       <Card className="border-0 shadow-md">
@@ -292,6 +512,15 @@ export default function GalleryPage() {
                   <ImageIcon className="w-12 h-12 text-white/60" />
                 </div>
               )}
+              {/* Instagram badge */}
+              {photo.source === 'instagram' && (
+                <div className="absolute top-2 left-2">
+                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 text-xs flex items-center gap-1">
+                    <Instagram className="w-3 h-3" />
+                    Instagram
+                  </Badge>
+                </div>
+              )}
               {/* Edit & Delete button overlay */}
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                 <Button
@@ -316,10 +545,19 @@ export default function GalleryPage() {
                 <Badge
                   variant="outline"
                   className={`text-xs ${
-                    categoryColors[photo.category] || 'bg-gray-100 text-gray-800 border-gray-200'
+                    photo.source === 'instagram'
+                      ? 'bg-white/80 backdrop-blur-sm text-purple-700 border-purple-200'
+                      : categoryColors[photo.category] || 'bg-gray-100 text-gray-800 border-gray-200'
                   }`}
                 >
-                  {categories.find((c) => c.value === photo.category)?.label || photo.category}
+                  {photo.source === 'instagram' ? (
+                    <span className="flex items-center gap-1">
+                      <Instagram className="w-3 h-3" />
+                      {categories.find((c) => c.value === photo.category)?.label || photo.category}
+                    </span>
+                  ) : (
+                    categories.find((c) => c.value === photo.category)?.label || photo.category
+                  )}
                 </Badge>
               </div>
             </div>
@@ -328,24 +566,41 @@ export default function GalleryPage() {
               <p className="text-sm font-medium text-burgundy-dark truncate">
                 {photo.caption || 'Untitled'}
               </p>
-              {photo.url && (
-                <a
-                  href={photo.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-muted-foreground hover:text-marigold flex items-center gap-1 mt-1"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  View original
-                </a>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {photo.instagramPermalink && (
+                  <a
+                    href={photo.instagramPermalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-purple-500 hover:text-purple-700 flex items-center gap-1"
+                  >
+                    <Instagram className="w-3 h-3" />
+                    View on Instagram
+                  </a>
+                )}
+                {photo.url && !photo.instagramPermalink && (
+                  <a
+                    href={photo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-marigold flex items-center gap-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View original
+                  </a>
+                )}
+                {!photo.url && <span />}
+                <Badge variant="outline" className="text-xs">
+                  {photo.isActive ? 'Active' : 'Hidden'}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Empty State */}
-      {filteredPhotos.length === 0 && (
+      {filteredPhotos.length === 0 && !loading && (
         <Card className="border-0 shadow-md">
           <CardContent className="p-12 text-center">
             <ImageIcon className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
@@ -353,15 +608,24 @@ export default function GalleryPage() {
             <p className="text-sm text-muted-foreground mt-2">
               {activeCategory !== 'all'
                 ? 'No photos in this category yet.'
-                : 'Your gallery is empty. Add your first photo!'}
+                : 'Your gallery is empty. Add photos or import from Instagram!'}
             </p>
-            <Button
-              onClick={() => setAddDialogOpen(true)}
-              className="mt-4 bg-burgundy hover:bg-burgundy-dark text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Photo
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button
+                onClick={() => setInstagramDialogOpen(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              >
+                <Instagram className="w-4 h-4 mr-2" />
+                Import from Instagram
+              </Button>
+              <Button
+                onClick={() => setAddDialogOpen(true)}
+                className="bg-burgundy hover:bg-burgundy-dark text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Photo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -495,6 +759,17 @@ export default function GalleryPage() {
               />
             </div>
 
+            <div className="flex items-center gap-2">
+              <Label htmlFor="edit-photo-active">Active</Label>
+              <input
+                id="edit-photo-active"
+                type="checkbox"
+                checked={editForm.isActive}
+                onChange={(e) => setEditForm({ ...editForm, isActive: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 Cancel
@@ -504,6 +779,289 @@ export default function GalleryPage() {
                 className="bg-burgundy hover:bg-burgundy-dark text-white"
               >
                 Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Instagram Import Dialog */}
+      <Dialog open={instagramDialogOpen} onOpenChange={setInstagramDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-burgundy font-serif flex items-center gap-2">
+              <Instagram className="w-5 h-5 text-pink-500" />
+              Import from Instagram
+            </DialogTitle>
+            <DialogDescription>
+              Sync photos from your Instagram profile to the gallery
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Method 1: Auto Sync with Graph API */}
+            <Card className="border border-purple-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Download className="w-4 h-4 text-purple-500" />
+                  Auto Sync (Business Accounts)
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Requires Instagram Business/Creator account with a Facebook Access Token
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm">Category for imported photos</Label>
+                  <Select
+                    value={instagramSettings.category}
+                    onValueChange={(value) => setInstagramSettings({ ...instagramSettings, category: value })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.filter((c) => c.value !== 'all').map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleInstagramSync}
+                  disabled={syncing}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <Instagram className="w-4 h-4 mr-2" />
+                      Sync from Instagram
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Configure your Access Token in Instagram Settings below
+                </p>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Method 2: Single URL Import */}
+            <Card className="border border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-blue-500" />
+                  Import by Post URL
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Paste an Instagram post URL to import that photo
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm">Instagram Post URL</Label>
+                  <Input
+                    placeholder="https://www.instagram.com/p/ABC123..."
+                    value={instagramImport.postUrl}
+                    onChange={(e) => setInstagramImport({ ...instagramImport, postUrl: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm">Category</Label>
+                  <Select
+                    value={instagramImport.category}
+                    onValueChange={(value) => setInstagramImport({ ...instagramImport, category: value })}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.filter((c) => c.value !== 'all').map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleInstagramUrlImport}
+                  disabled={syncing || !instagramImport.postUrl}
+                  variant="outline"
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="w-4 h-4 mr-2" />
+                      Import Post
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Method 3: Bulk URL Import */}
+            <Card className="border border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4 text-green-500" />
+                  Bulk Import URLs
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Paste multiple Instagram post URLs, one per line (max 25)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm">Instagram Post URLs</Label>
+                  <Textarea
+                    placeholder={"https://www.instagram.com/p/ABC123...\nhttps://www.instagram.com/p/DEF456...\nhttps://www.instagram.com/p/GHI789..."}
+                    value={instagramBulkUrls}
+                    onChange={(e) => setInstagramBulkUrls(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+                <Button
+                  onClick={handleBulkImport}
+                  disabled={syncing || !instagramBulkUrls.trim()}
+                  variant="outline"
+                  className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Import All URLs
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Separator />
+
+            {/* Instagram Settings Button */}
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => {
+                setInstagramDialogOpen(false)
+                setInstagramSettingsDialogOpen(true)
+              }}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Instagram Settings (Access Token & Username)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Instagram Settings Dialog */}
+      <Dialog open={instagramSettingsDialogOpen} onOpenChange={setInstagramSettingsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-burgundy font-serif flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Instagram Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure your Instagram connection for auto-sync
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Instagram Username</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">@</span>
+                <Input
+                  placeholder="marigoldbanquet"
+                  value={instagramSettings.username}
+                  onChange={(e) =>
+                    setInstagramSettings({ ...instagramSettings, username: e.target.value.replace('@', '') })
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your Instagram username without the @ symbol
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Instagram Graph API Access Token</Label>
+              <Input
+                type="password"
+                placeholder="IGQVJ..."
+                value={instagramSettings.accessToken}
+                onChange={(e) =>
+                  setInstagramSettings({ ...instagramSettings, accessToken: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Required for auto-sync. Get your token from Facebook Developer Portal.
+                Only needed if you have an Instagram Business/Creator account.
+              </p>
+            </div>
+
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <h4 className="text-sm font-semibold text-blue-800 mb-2">
+                  How to get your Access Token:
+                </h4>
+                <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                  <li>Go to developers.facebook.com and create a Facebook App</li>
+                  <li>Add Instagram Basic Display product to your app</li>
+                  <li>Go to Settings and add your Instagram account as a test user</li>
+                  <li>Generate a User Token with instagram_graph_user_media permission</li>
+                  <li>Paste the token above and save</li>
+                </ol>
+                <p className="text-xs text-blue-600 mt-2 font-medium">
+                  Note: You need an Instagram Business or Creator account for this.
+                  If you have a personal account, use the &quot;Import by Post URL&quot; method instead.
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setInstagramSettingsDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveInstagramSettings}
+                disabled={savingSettings}
+                className="bg-burgundy hover:bg-burgundy-dark text-white"
+              >
+                {savingSettings ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Save Settings
+                  </>
+                )}
               </Button>
             </div>
           </div>

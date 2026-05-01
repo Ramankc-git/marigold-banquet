@@ -144,15 +144,18 @@ model DecorationPhoto {
 }
 
 model GalleryPhoto {
-  id        String   @id @default(cuid())
-  url       String
-  caption   String?
-  category  String   // weddings, parties, corporate, decoration, food, venue_spaces
-  eventDate String?
-  isActive  Boolean  @default(true)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  url                String
+  caption            String?
+  category           String   // weddings, parties, corporate, decoration, food, venue_spaces
+  eventDate          String?
+  isActive           Boolean  @default(true)
+  order              Int      @default(0)
+  source             String   @default("manual") // manual, instagram
+  instagramPermalink String?  // Link back to the original Instagram post
+  instagramMediaId   String?  // Instagram media ID to prevent duplicates
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model GalleryVideo {

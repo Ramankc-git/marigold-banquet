@@ -75,11 +75,14 @@ export const blogPostSchema = z.object({
 // ─── Gallery ─────────────────────────────────────────────
 export const galleryPhotoSchema = z.object({
   url: z.string().min(1, "URL is required"),
-  caption: z.string().max(200).optional(),
+  caption: z.string().max(500).optional(),
   category: z.string().min(1, "Category is required"),
   eventDate: z.string().optional(),
   isActive: z.boolean().optional(),
   order: z.number().int().optional(),
+  source: z.string().optional(),
+  instagramPermalink: z.string().optional(),
+  instagramMediaId: z.string().optional(),
 });
 
 export const galleryVideoSchema = z.object({
