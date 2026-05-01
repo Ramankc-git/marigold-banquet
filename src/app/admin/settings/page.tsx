@@ -15,6 +15,8 @@ import {
   Instagram,
   Key,
   HelpCircle,
+  BarChart3,
+  ExternalLink,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +39,8 @@ interface SiteSettings {
   // Instagram Integration
   instagramUsername: string
   instagramAccessToken: string
+  // Analytics
+  gaMeasurementId: string
   // SEO Defaults
   seoDefaultTitle: string
   seoDefaultDescription: string
@@ -54,6 +58,7 @@ const defaultSettings: SiteSettings = {
   whatsappNumber: '+977-9851111191',
   instagramUsername: 'marigoldbanquet',
   instagramAccessToken: '',
+  gaMeasurementId: '',
   seoDefaultTitle: 'Marigold Banquet Hall & Party Palace | Premium Venue in Kathmandu',
   seoDefaultDescription:
     'Marigold Banquet Hall and Party Palace in Tokha-07, Kathmandu. Premium venue for weddings, parties & corporate events. In-house catering & decoration.',
@@ -348,6 +353,104 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </CardContent>
+      </Card>
+
+      {/* Analytics & Tracking */}
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg font-serif text-burgundy flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-500" />
+            Analytics & Tracking
+          </CardTitle>
+          <CardDescription>
+            Track website visitors, page views, and business conversions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ga-id" className="flex items-center gap-2">
+              <BarChart3 className="w-3.5 h-3.5 text-muted-foreground" />
+              Google Analytics 4 Measurement ID
+            </Label>
+            <Input
+              id="ga-id"
+              placeholder="G-XXXXXXXXXX"
+              value={settings.gaMeasurementId}
+              onChange={(e) => updateField('gaMeasurementId', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Your GA4 Measurement ID (starts with G-). After saving, you also need to add this as
+              the <code className="bg-gray-100 px-1 rounded text-xs">NEXT_PUBLIC_GA_MEASUREMENT_ID</code> environment
+              variable on Vercel for it to take effect.
+            </p>
+          </div>
+
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-2">
+                <HelpCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">
+                    How to set up Google Analytics 4:
+                  </h4>
+                  <ol className="text-xs text-blue-700 space-y-1.5 list-decimal list-inside">
+                    <li>Go to <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800 flex-inline items-center gap-1">analytics.google.com <ExternalLink className="w-3 h-3 inline" /></a> and sign in with your Google account</li>
+                    <li>Click &quot;Start Measuring&quot; and create a new account/property for Marigold Banquet</li>
+                    <li>Enter your website URL: <code className="bg-blue-100 px-1 rounded">marigold-banquet.vercel.app</code></li>
+                    <li>Choose &quot;Web&quot; as the platform and create the data stream</li>
+                    <li>Copy the Measurement ID (format: G-XXXXXXXXXX)</li>
+                    <li>Paste it above and save settings</li>
+                    <li>Add it as Vercel environment variable: <code className="bg-blue-100 px-1 rounded">NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX</code></li>
+                    <li>Redeploy on Vercel for the env var to take effect</li>
+                  </ol>
+                  <Separator className="my-3 bg-blue-200" />
+                  <div className="space-y-1">
+                    <p className="text-xs text-blue-600 font-medium">
+                      Already included (no setup needed):
+                    </p>
+                    <ul className="text-xs text-blue-600 list-disc list-inside space-y-0.5">
+                      <li><strong>Vercel Analytics</strong> — automatic page views, Web Vitals (LCP, FID, CLS)</li>
+                      <li><strong>Vercel Speed Insights</strong> — real-user performance data in Vercel dashboard</li>
+                    </ul>
+                    <p className="text-xs text-blue-600 mt-2">
+                      View these in your <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">Vercel Dashboard</a> under the Analytics tab.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">What gets tracked:</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                Page views & visitor counts
+              </div>
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                Enquiry form submissions
+              </div>
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                Booking conversions
+              </div>
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                WhatsApp & phone clicks
+              </div>
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                Gallery photo views
+              </div>
+              <div className="flex items-center gap-2 bg-green-50 rounded-md p-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                Page load performance
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
