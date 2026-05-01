@@ -1,9 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "marigold-banquet-default-secret-change-in-production"
-);
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set. Refusing to start with insecure defaults.");
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const COOKIE_NAME = "marigold_admin_token";
 
@@ -17,6 +18,8 @@ export interface AdminPayload {
 export async function signAdminToken(payload: AdminPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuer("marigold-admin")
+    .setAudience("marigold-admin-panel")
     .setIssuedAt()
     .setExpirationTime("24h")
     .sign(JWT_SECRET);

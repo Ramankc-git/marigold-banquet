@@ -165,15 +165,35 @@ function VenueViewingForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate submission
-    setTimeout(() => {
-      setSubmitted(true);
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    try {
+      const res = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: data.get('name'),
+          phone: data.get('phone'),
+          email: data.get('email'),
+          eventType: 'venue_viewing',
+          preferredDate: data.get('date'),
+          specialReqs: `Preferred time: ${data.get('time')}`,
+        }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+        trackBookingStarted('venue_viewing');
+      } else {
+        toast.error('Failed to submit. Please try again or contact us on WhatsApp.');
+      }
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
       setLoading(false);
-      trackBookingStarted('venue_viewing');
-    }, 1000);
+    }
   };
 
   if (submitted) {
@@ -361,7 +381,7 @@ export default function BookingPage() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Mail className="w-3 h-3" />
-                      info@marigoldbanquet.com
+                      info@marigoldbanquet.com.np
                     </span>
                   </div>
                 </CardContent>

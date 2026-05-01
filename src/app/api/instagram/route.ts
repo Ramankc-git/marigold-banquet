@@ -177,8 +177,24 @@ async function importFromUrl(body: {
 }) {
   const { postUrl, category = "weddings" } = body;
 
-  if (!postUrl || !postUrl.includes("instagram.com")) {
-    return apiError("A valid Instagram post URL is required", 400);
+  if (!postUrl) {
+    return apiError("An Instagram post URL is required", 400);
+  }
+
+  // Strict URL validation to prevent SSRF
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(postUrl);
+  } catch {
+    return apiError("Invalid URL format", 400);
+  }
+
+  // Only allow HTTPS to instagram.com or www.instagram.com
+  if (parsedUrl.protocol !== "https:") {
+    return apiError("Only HTTPS Instagram URLs are allowed", 400);
+  }
+  if (!["instagram.com", "www.instagram.com"].includes(parsedUrl.hostname)) {
+    return apiError("Only instagram.com URLs are allowed", 400);
   }
 
   try {

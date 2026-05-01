@@ -93,7 +93,7 @@ export function Header() {
                 </svg>
               </a>
               <a
-                href="https://www.instagram.com/"
+                href="https://www.instagram.com/marigoldbanquet/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-marigold-light transition-colors"

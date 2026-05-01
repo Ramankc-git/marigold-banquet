@@ -5,23 +5,28 @@ import { signAdminToken } from "@/lib/auth";
 
 // Fallback admin credentials from environment variables
 // This ensures login works on Vercel even if the database is empty/ephemeral
-const ENV_ADMINS: Record<string, { password: string; name: string; role: string }> = {
-  "admin@marigoldbanquet.com.np": {
-    password: process.env.ADMIN_PASSWORD || "admin123",
+const ENV_ADMINS: Record<string, { password: string; name: string; role: string }> = {};
+if (process.env.ADMIN_PASSWORD) {
+  ENV_ADMINS["admin@marigoldbanquet.com.np"] = {
+    password: process.env.ADMIN_PASSWORD,
     name: "Super Admin",
     role: "super_admin",
-  },
-  "manager@marigoldbanquet.com.np": {
-    password: process.env.MANAGER_PASSWORD || "manager123",
+  };
+}
+if (process.env.MANAGER_PASSWORD) {
+  ENV_ADMINS["manager@marigoldbanquet.com.np"] = {
+    password: process.env.MANAGER_PASSWORD,
     name: "Event Manager",
     role: "event_manager",
-  },
-  "editor@marigoldbanquet.com.np": {
-    password: process.env.EDITOR_PASSWORD || "editor123",
+  };
+}
+if (process.env.EDITOR_PASSWORD) {
+  ENV_ADMINS["editor@marigoldbanquet.com.np"] = {
+    password: process.env.EDITOR_PASSWORD,
     name: "Content Editor",
     role: "content_editor",
-  },
-};
+  };
+}
 
 function createAuthResponse(data: object, token: string) {
   const response = apiResponse(data);
@@ -30,7 +35,7 @@ function createAuthResponse(data: object, token: string) {
     name: "marigold_admin_token",
     value: token,
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax", // Use "lax" instead of "strict" for better compatibility
     path: "/",
     maxAge: 86400, // 24 hours
@@ -75,8 +80,7 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (dbError) {
-      // Database not available (e.g., Vercel ephemeral filesystem or no DB configured)
-      console.log("DB lookup failed, falling back to env credentials:", dbError instanceof Error ? dbError.message : "unknown error");
+      // Database not available, silently fall back to env credentials
     }
 
     // Fallback: Check environment variable credentials

@@ -108,7 +108,7 @@ export function Footer() {
                 <Facebook className="w-5 h-5" />
               </a>
               <a
-                href="https://www.instagram.com/"
+                href="https://www.instagram.com/marigoldbanquet/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-marigold flex items-center justify-center transition-colors"
@@ -205,7 +205,9 @@ export function Footer() {
           <div className="flex items-center gap-4 text-ivory/50 text-xs">
             <span>Sister Brand:</span>
             <a
-              href="#"
+              href="https://www.facebook.com/MarigoldBanquetcafeHealthClub/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-marigold-light hover:text-marigold transition-colors"
             >
               Marigold Swimming Pool & Sauna

@@ -31,6 +31,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -308,6 +309,7 @@ export default function EnquiriesPage() {
               <Mail className="w-5 h-5" />
               Enquiry Details
             </DialogTitle>
+            <DialogDescription className="sr-only">Enquiry details and management actions</DialogDescription>
           </DialogHeader>
           {selectedEnquiry && (
             <div className="space-y-4">

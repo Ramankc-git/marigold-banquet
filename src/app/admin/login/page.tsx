@@ -112,11 +112,13 @@ export default function AdminLoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-            <p className="text-xs text-muted-foreground">
-              Default credentials: <span className="font-mono">admin@marigoldbanquet.com.np</span> / <span className="font-mono">admin123</span>
-            </p>
-          </div>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 pt-4 border-t border-gray-100 text-center">
+              <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded">
+                Dev mode — configure admin credentials in .env
+              </p>
+            </div>
+          )}
         </div>
 
         <p className="text-center text-ivory/40 text-xs mt-6">

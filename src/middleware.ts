@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "marigold-banquet-default-secret-change-in-production"
-);
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not set.");
+}
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const COOKIE_NAME = "marigold_admin_token";
 
@@ -26,34 +27,41 @@ const PROTECTED_API_PATTERNS = [
   { method: "PATCH", pattern: /^\/api\/(enquiries|bookings|blogs|gallery|halls|packages|menu|decorations|offers|vendors|team|faq|testimonials)/ },
   { method: "PUT", pattern: /^\/api\/settings/ },
   { method: "DELETE", pattern: /^\/api\/(gallery|blogs|halls|packages|menu|decorations|offers|vendors|team|faq|testimonials|enquiries|bookings)/ },
+  // Instagram admin operations
+  { method: "POST", pattern: /^\/api\/instagram$/ },
+  { method: "PATCH", pattern: /^\/api\/instagram/ },
+  { method: "DELETE", pattern: /^\/api\/instagram/ },
+  // Blog post admin operations
+  { method: "POST", pattern: /^\/api\/blog-post$/ },
 ];
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const method = request.method;
-
-  // Add security headers to all responses
-  const response = NextResponse.next();
+function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const method = request.method;
 
   // Check if this is a protected admin page route
   if (pathname.startsWith("/admin") && !PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
 
     if (!token) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      return withSecurityHeaders(NextResponse.redirect(new URL("/admin/login", request.url)));
     }
 
     try {
       await jwtVerify(token, JWT_SECRET);
       // Token is valid, allow access
-      return response;
+      return withSecurityHeaders(NextResponse.next());
     } catch {
       // Token invalid or expired, redirect to login
-      const redirect = NextResponse.redirect(new URL("/admin/login", request.url));
+      const redirect = withSecurityHeaders(NextResponse.redirect(new URL("/admin/login", request.url)));
       redirect.cookies.delete(COOKIE_NAME);
       return redirect;
     }
@@ -64,7 +72,7 @@ export async function middleware(request: NextRequest) {
     (p) => p.method === method && p.pattern.test(pathname)
   );
   if (isPublicApi) {
-    return response;
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // Check if this is a protected API route
@@ -77,28 +85,28 @@ export async function middleware(request: NextRequest) {
     const apiKey = request.headers.get("x-api-key");
 
     if (apiKey && apiKey === process.env.ADMIN_API_KEY) {
-      return response;
+      return withSecurityHeaders(NextResponse.next());
     }
 
     if (!token) {
-      return NextResponse.json(
+      return withSecurityHeaders(NextResponse.json(
         { success: false, error: "Authentication required" },
         { status: 401 }
-      );
+      ));
     }
 
     try {
       await jwtVerify(token, JWT_SECRET);
-      return response;
+      return withSecurityHeaders(NextResponse.next());
     } catch {
-      return NextResponse.json(
+      return withSecurityHeaders(NextResponse.json(
         { success: false, error: "Invalid or expired token" },
         { status: 401 }
-      );
+      ));
     }
   }
 
-  return response;
+  return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
@@ -122,5 +130,7 @@ export const config = {
     "/api/faq/:path*",
     "/api/testimonials/:path*",
     "/api/contact",
+    "/api/instagram/:path*",
+    "/api/blog-post/:path*",
   ],
 };

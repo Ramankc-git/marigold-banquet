@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         category: data.category,
         tier: data.tier,
         description: data.description,
-        includes: data.includes || null,
+        includes: data.includes || "[]",
         price: data.price ?? null,
         isActive: data.isActive ?? true,
         order: data.order ?? 0,

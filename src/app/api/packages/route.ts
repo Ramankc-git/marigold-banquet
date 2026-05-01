@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
         description: data.description,
         price: data.price ?? null,
         priceUnit: data.priceUnit || null,
-        includes: data.includes || null,
+        includes: data.includes || "[]",
         isActive: data.isActive ?? true,
         order: data.order ?? 0,
       },
