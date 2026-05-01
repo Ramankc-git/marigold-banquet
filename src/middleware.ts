@@ -47,7 +47,25 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
-  // Check if this is a protected admin page route
+  // ── Redirect www to non-www (canonical domain) ──────────────────────────
+  const host = request.headers.get("host") || "";
+  if (host.startsWith("www.")) {
+    const url = request.nextUrl.clone();
+    url.host = host.replace("www.", "");
+    return NextResponse.redirect(url, 301);
+  }
+
+  // ── Add geo-based headers for Nepal visitors ────────────────────────────
+  const response = NextResponse.next();
+  // Vercel provides geo data on NextRequest (types may not include it)
+  const geo = (request as unknown as { geo?: { country?: string; city?: string } }).geo;
+  const _country = geo?.country;
+  const _city = geo?.city;
+
+  // Set Vary header for proper CDN caching
+  response.headers.set("Vary", "Accept-Encoding");
+
+  // ── Check if this is a protected admin page route ───────────────────────
   if (pathname.startsWith("/admin") && !PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
 
@@ -67,7 +85,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public API routes (enquiry form, contact form, booking form)
+  // ── Allow public API routes (enquiry form, contact form, booking form) ──
   const isPublicApi = PUBLIC_API_ROUTES.some(
     (p) => p.method === method && p.pattern.test(pathname)
   );
@@ -75,7 +93,7 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.next());
   }
 
-  // Check if this is a protected API route
+  // ── Check if this is a protected API route ──────────────────────────────
   const isProtectedApi = PROTECTED_API_PATTERNS.some(
     (p) => p.method === method && p.pattern.test(pathname)
   );
@@ -106,11 +124,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return withSecurityHeaders(NextResponse.next());
+  return withSecurityHeaders(response);
 }
 
 export const config = {
   matcher: [
+    // All routes (for www redirect + geo headers)
+    "/(.*)",
     // Admin pages
     "/admin/:path((?!login$).*)",
     "/admin/login",
