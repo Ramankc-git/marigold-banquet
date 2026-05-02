@@ -1,22 +1,24 @@
 import { MetadataRoute } from "next";
+import { db } from "@/lib/db";
 
 const baseUrl = "https://marigoldbanquet.com.np";
 
-// Known blog post slugs with their publish dates
-const blogPosts = [
-  {
-    slug: "how-to-plan-the-perfect-wedding-in-kathmandu",
-    lastModified: "2025-01-15",
-    priority: 0.7,
-  },
-  {
-    slug: "complete-bratabandha-planning-guide",
-    lastModified: "2025-01-20",
-    priority: 0.7,
-  },
-];
+// Force dynamic rendering so the sitemap fetches blog posts at request time
+export const dynamic = "force-dynamic";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Fetch all published blog posts from the database
+  let publishedPosts: { slug: string; updatedAt: Date }[] = [];
+  try {
+    publishedPosts = await db.blogPost.findMany({
+      where: { isPublished: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { publishedAt: "desc" },
+    });
+  } catch {
+    // If database is unavailable (e.g. during build), skip blog posts
+  }
+
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
@@ -128,12 +130,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Dynamic blog post URLs
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+  // Dynamic blog post URLs from database
+  const blogPages: MetadataRoute.Sitemap = publishedPosts.map((post) => ({
     url: `${baseUrl}/blog/${post.slug}`,
-    lastModified: post.lastModified,
+    lastModified: post.updatedAt,
     changeFrequency: "monthly" as const,
-    priority: post.priority,
+    priority: 0.7,
   }));
 
   return [...staticPages, ...blogPages];

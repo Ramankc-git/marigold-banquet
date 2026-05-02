@@ -23,7 +23,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return apiError("Invalid request body. Expected JSON.", 400);
+    }
     const parsed = bookingSchema.safeParse(body);
     if (!parsed.success) {
       return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
