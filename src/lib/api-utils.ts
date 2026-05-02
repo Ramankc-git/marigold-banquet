@@ -60,3 +60,23 @@ export function clampInt(value: string | null, min: number, max: number, fallbac
 export function parseBoolean(value: string | null): boolean {
   return value === "true";
 }
+
+/**
+ * Parse pagination parameters from a URL's search params.
+ */
+export function parsePagination(searchParams: URLSearchParams, defaults?: { limit?: number; offset?: number }) {
+  const limit = clampInt(searchParams.get("limit"), 1, 100, defaults?.limit ?? 50);
+  const offset = clampInt(searchParams.get("offset"), 0, 10000, defaults?.offset ?? 0);
+  return { limit, offset };
+}
+
+/**
+ * Parse filter parameters commonly used in list endpoints.
+ */
+export function parseFilters(searchParams: URLSearchParams) {
+  const all = parseBoolean(searchParams.get("all"));
+  const category = searchParams.get("category") || undefined;
+  const status = searchParams.get("status") || undefined;
+  const tier = searchParams.get("tier") || undefined;
+  return { all, category, status, tier };
+}

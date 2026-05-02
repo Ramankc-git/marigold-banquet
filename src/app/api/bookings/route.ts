@@ -1,36 +1,21 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { apiResponse, apiError, handlePrismaError, clampInt } from "@/lib/api-utils";
+import { apiResponse, apiError, handlePrismaError, parsePagination, parseFilters } from "@/lib/api-utils";
 import { bookingSchema, bookingStatusSchema } from "@/lib/validations";
-
-const ALLOWED_BOOKING_STATUSES = ["pending", "confirmed", "cancelled", "completed"] as const;
+import { BookingService } from "@/services";
+import { BOOKING_STATUSES } from "@/constants";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const { limit, offset } = parsePagination(searchParams);
+    const { status } = parseFilters(searchParams);
 
-    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
-    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
-    const status = searchParams.get("status");
+    if (status && !BOOKING_STATUSES.includes(status as any)) {
+      return apiError(`Invalid status. Allowed: ${BOOKING_STATUSES.join(", ")}`, 400);
+    }
 
-    const where = status && ALLOWED_BOOKING_STATUSES.includes(status as typeof ALLOWED_BOOKING_STATUSES[number])
-      ? { status }
-      : {};
-
-    const [bookings, total] = await Promise.all([
-      db.booking.findMany({
-        where,
-        orderBy: { eventDate: "asc" },
-        take: limit,
-        skip: offset,
-        include: {
-          hall: { select: { name: true } },
-        },
-      }),
-      db.booking.count({ where }),
-    ]);
-
-    return apiResponse({ bookings, total });
+    const result = await BookingService.list({ limit, offset, status });
+    return apiResponse({ bookings: result.items, total: result.total });
   } catch (error) {
     return handlePrismaError(error);
   }
@@ -40,29 +25,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = bookingSchema.safeParse(body);
-
     if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors;
-      return apiError("Validation failed", 400, errors);
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
-    const booking = await db.booking.create({
-      data: {
-        fullName: parsed.data.fullName,
-        phone: parsed.data.phone,
-        email: parsed.data.email || null,
-        eventType: parsed.data.eventType,
-        hallId: parsed.data.hallId || null,
-        expectedGuests: parsed.data.expectedGuests ?? null,
-        eventDate: parsed.data.eventDate,
-        startTime: parsed.data.startTime || null,
-        endTime: parsed.data.endTime || null,
-        packageType: parsed.data.packageType || null,
-        totalAmount: parsed.data.totalAmount ?? null,
-        notes: parsed.data.notes || null,
-      },
-    });
-
+    const booking = await BookingService.create(parsed.data);
     return apiResponse(booking, 201);
   } catch (error) {
     return handlePrismaError(error);
@@ -73,52 +39,32 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = bookingStatusSchema.safeParse(body);
-
     if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors;
-      return apiError("Validation failed", 400, errors);
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
     const { id, status, notes } = parsed.data;
-
-    const existing = await db.booking.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Booking not found", 404);
-    }
-
-    const booking = await db.booking.update({
-      where: { id },
-      data: {
-        status,
-        ...(notes !== undefined ? { notes } : {}),
-      },
-    });
-
+    const booking = await BookingService.updateStatus(id, status, notes);
     return apiResponse(booking);
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Booking not found", 404);
+    }
     return handlePrismaError(error);
   }
 }
 
-// ── DELETE /api/bookings ─────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    if (!id) return apiError("Booking ID is required", 400);
 
-    if (!id) {
-      return apiError("Booking ID is required", 400);
-    }
-
-    const existing = await db.booking.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Booking not found", 404);
-    }
-
-    await db.booking.delete({ where: { id } });
-
+    await BookingService.delete(id);
     return apiResponse({ deleted: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Booking not found", 404);
+    }
     return handlePrismaError(error);
   }
 }

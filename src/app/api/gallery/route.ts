@@ -1,167 +1,85 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { apiResponse, apiError, handlePrismaError, clampInt, parseBoolean } from "@/lib/api-utils";
+import { apiResponse, apiError, handlePrismaError, parsePagination, parseFilters } from "@/lib/api-utils";
 import { galleryPhotoSchema } from "@/lib/validations";
+import { GalleryService } from "@/services";
+import { GALLERY_CATEGORIES } from "@/constants";
 
-const ALLOWED_CATEGORIES = ["weddings", "parties", "corporate", "decoration", "food", "venue_spaces"] as const;
-
-// ── GET /api/gallery ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const { limit, offset } = parsePagination(searchParams);
+    const { all, category } = parseFilters(searchParams);
 
-    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
-    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
-    const all = parseBoolean(searchParams.get("all"));
-    const category = searchParams.get("category");
-
-    const where: Record<string, unknown> = {};
-
-    if (category) {
-      if (!ALLOWED_CATEGORIES.includes(category as (typeof ALLOWED_CATEGORIES)[number])) {
-        return apiError(
-          `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
-          400
-        );
-      }
-      where.category = category;
+    if (category && !GALLERY_CATEGORIES.includes(category as any)) {
+      return apiError(`Invalid category. Allowed: ${GALLERY_CATEGORIES.join(", ")}`, 400);
     }
 
-    if (!all) {
-      where.isActive = true;
-    }
-
-    const [photos, total] = await Promise.all([
-      db.galleryPhoto.findMany({
-        where,
-        orderBy: { order: "asc" },
-        take: limit,
-        skip: offset,
-      }),
-      db.galleryPhoto.count({ where }),
-    ]);
-
-    // Also return videos (lightweight, no pagination needed)
-    const videos = await db.galleryVideo.findMany({
-      where: all ? {} : { isActive: true },
-      orderBy: { order: "asc" },
-    });
-
-    return apiResponse({ photos, videos, total });
+    const result = await GalleryService.list({ limit, offset, all, category });
+    return apiResponse(result);
   } catch (error) {
     return handlePrismaError(error);
   }
 }
 
-// ── POST /api/gallery ───────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
     const parsed = galleryPhotoSchema.safeParse(body);
     if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      return apiError("Validation failed", 400, fieldErrors);
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
 
     const data = parsed.data;
-
-    // Validate category against allowed values
-    if (!ALLOWED_CATEGORIES.includes(data.category as (typeof ALLOWED_CATEGORIES)[number])) {
-      return apiError(
-        `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
-        400
-      );
+    if (!GALLERY_CATEGORIES.includes(data.category as any)) {
+      return apiError(`Invalid category. Allowed: ${GALLERY_CATEGORIES.join(", ")}`, 400);
     }
 
-    // Check for duplicate Instagram media
-    if (data.instagramMediaId) {
-      const existing = await db.galleryPhoto.findFirst({
-        where: { instagramMediaId: data.instagramMediaId },
-      });
-      if (existing) {
-        return apiError("This Instagram post has already been imported", 409);
-      }
-    }
-
-    const photo = await db.galleryPhoto.create({
-      data: {
-        url: data.url,
-        caption: data.caption || null,
-        category: data.category,
-        eventDate: data.eventDate || null,
-        isActive: data.isActive ?? true,
-        order: data.order ?? 0,
-        source: data.source || "manual",
-        instagramPermalink: data.instagramPermalink || null,
-        instagramMediaId: data.instagramMediaId || null,
-      },
-    });
-
+    const photo = await GalleryService.create(data);
     return apiResponse(photo, 201);
   } catch (error) {
+    if (error instanceof Error && error.message === "DUPLICATE_INSTAGRAM") {
+      return apiError("This Instagram post has already been imported", 409);
+    }
     return handlePrismaError(error);
   }
 }
 
-// ── PATCH /api/gallery ─────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const { id, ...updateData } = body;
-
-    if (!id) {
-      return apiError("Photo ID is required", 400);
-    }
-
-    const existing = await db.galleryPhoto.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Gallery photo not found", 404);
-    }
+    if (!id) return apiError("Photo ID is required", 400);
 
     const parsed = galleryPhotoSchema.partial().safeParse(updateData);
     if (!parsed.success) {
       return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
-    // Validate category if provided
-    if (parsed.data.category && !ALLOWED_CATEGORIES.includes(parsed.data.category as (typeof ALLOWED_CATEGORIES)[number])) {
-      return apiError(
-        `Invalid category. Allowed values: ${ALLOWED_CATEGORIES.join(", ")}`,
-        400
-      );
+    if (parsed.data.category && !GALLERY_CATEGORIES.includes(parsed.data.category as any)) {
+      return apiError(`Invalid category. Allowed: ${GALLERY_CATEGORIES.join(", ")}`, 400);
     }
 
-    const photo = await db.galleryPhoto.update({
-      where: { id },
-      data: parsed.data,
-    });
-
+    const photo = await GalleryService.update(id, parsed.data);
     return apiResponse(photo);
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Gallery photo not found", 404);
+    }
     return handlePrismaError(error);
   }
 }
 
-// ── DELETE /api/gallery ─────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    if (!id) return apiError("Photo ID is required", 400);
 
-    if (!id) {
-      return apiError("Photo ID is required", 400);
-    }
-
-    const existing = await db.galleryPhoto.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Gallery photo not found", 404);
-    }
-
-    await db.galleryPhoto.delete({ where: { id } });
-
+    await GalleryService.delete(id);
     return apiResponse({ deleted: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Gallery photo not found", 404);
+    }
     return handlePrismaError(error);
   }
 }

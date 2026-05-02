@@ -22,81 +22,6 @@ interface BlogPost {
   createdAt: string;
 }
 
-const fallbackPosts: Record<string, BlogPost> = {
-  "how-to-plan-the-perfect-wedding-in-kathmandu": {
-    id: "1",
-    title: "How to Plan the Perfect Wedding in Kathmandu",
-    slug: "how-to-plan-the-perfect-wedding-in-kathmandu",
-    excerpt: "Planning a wedding in Kathmandu? Here is your complete guide to venues, vendors, and traditions.",
-    content: `Planning a wedding in Kathmandu is an exciting journey that blends rich cultural traditions with modern celebrations. The capital city of Nepal offers a unique setting for weddings, with its stunning mountain backdrops, vibrant culture, and world-class venues.
-
-## Choosing the Right Venue
-
-The first and most important decision in your wedding planning journey is selecting the perfect venue. Kathmandu offers a range of options from traditional courtyards to modern banquet halls. When choosing a venue, consider the number of guests, the type of ceremony, parking availability, and whether the venue offers in-house catering and decoration services.
-
-Marigold Banquet Hall in Tokha-07, Gairigaun offers a stunning setting with multiple hall options, in-house catering featuring authentic Nepali cuisine, and comprehensive decoration packages that can be customized to match your vision.
-
-## Understanding Nepali Wedding Traditions
-
-Nepali weddings are multi-day celebrations filled with meaningful rituals. From the Mehendi ceremony to the main wedding day and the reception, each event has its own significance. Understanding these traditions helps you plan each ceremony appropriately and allocate the right budget and time for each.
-
-## Budget Planning
-
-A well-planned budget is the foundation of a successful wedding. In Kathmandu, wedding costs can vary significantly based on the venue, guest count, catering choices, and decoration style. On average, a mid-range wedding in Kathmandu can cost between NPR 5-15 lakhs, while luxury weddings can exceed NPR 30 lakhs.
-
-## Vendor Selection
-
-Key vendors for a Kathmandu wedding include photographers, caterers, decorators, mehendi artists, makeup artists, and musicians. It is advisable to book vendors at least 3-6 months in advance, especially during the wedding season (November to February and April to May).
-
-## Timeline and Checklist
-
-Start planning at least 6-12 months before your wedding date. Create a detailed timeline covering venue booking, vendor selection, invitation sending, outfit shopping, and pre-wedding ceremony arrangements. A well-organized timeline ensures nothing is missed and reduces stress as the big day approaches.`,
-    featuredImage: null,
-    category: "wedding_tips",
-    author: "Marigold Team",
-    readTime: 5,
-    publishedAt: "2025-01-15",
-    createdAt: "2025-01-15",
-  },
-  "complete-bratabandha-planning-guide": {
-    id: "3",
-    title: "Complete Bratabandha Planning Guide for Modern Families",
-    slug: "complete-bratabandha-planning-guide",
-    excerpt: "Everything you need to know about organizing a memorable bratabandha ceremony.",
-    content: `The Bratabandha ceremony, also known as Bartaman or Upanayana, is one of the most important Sanskaras (sacraments) in Hindu tradition. It marks the symbolic transition of a young boy into formal religious education and spiritual awareness. Planning this sacred ceremony requires attention to both traditional rituals and modern celebration expectations.
-
-## Understanding the Significance
-
-Bratabandha literally means "taking the vow of celibacy" and traditionally marks the beginning of a boy's formal education in the Gurukul system. Today, while the spiritual significance remains, the ceremony has evolved into a grand celebration where families come together to honor this important milestone.
-
-## Key Rituals and Timeline
-
-The ceremony typically begins with Ganesh Puja, followed by the main rituals including the wearing of the Janai (sacred thread), Havan (sacred fire ceremony), and blessings from elders. The entire ceremony can take 3-5 hours depending on the family's traditions and the Pandit's guidance.
-
-## Venue Selection
-
-Choosing the right venue for a Bratabandha is crucial. You need a space that can accommodate the ritual area, guests for the ceremony, and a separate dining area. Marigold Banquet Hall offers flexible hall configurations that can be set up with a traditional mandap for the ceremony while maintaining comfortable seating for guests.
-
-## Modern vs Traditional Setup
-
-Modern families often blend traditional elements with contemporary celebrations. While the core rituals remain unchanged, the decoration, catering, and entertainment aspects have evolved. Many families now opt for themed decoration that incorporates both traditional Nepali elements and modern aesthetics.
-
-## Catering Considerations
-
-Food is central to any Nepali celebration. For Bratabandha ceremonies, a traditional Nepali feast is customary. Consider offering a mix of traditional items like dal-bhat, achar, and sel-roti alongside popular modern dishes. Ensure there are pure vegetarian options as many guests may prefer them during religious ceremonies.
-
-## Budget Planning
-
-A typical Bratabandha celebration in Kathmandu can range from NPR 1-5 lakhs depending on the guest count and scale of celebration. Key expenses include venue rental, catering, decoration, priest fees, and gifts.`,
-    featuredImage: null,
-    category: "nepal_event_culture",
-    author: "Marigold Team",
-    readTime: 7,
-    publishedAt: "2025-01-20",
-    createdAt: "2025-01-20",
-  },
-};
-
 const categoryLabels: Record<string, string> = {
   wedding_tips: "Wedding Tips",
   party_ideas: "Party Ideas",
@@ -126,11 +51,7 @@ export default function BlogPostPage() {
           }
         }
       } catch {
-        // Use fallback
-      }
-      // Use fallback post
-      if (fallbackPosts[slug]) {
-        setPost(fallbackPosts[slug]);
+        // API unavailable
       }
       setLoading(false);
     }
@@ -163,7 +84,7 @@ export default function BlogPostPage() {
       "@type": "WebPage",
       "@id": `https://marigoldbanquet.com.np/blog/${slug}`,
     },
-    image: "https://marigoldbanquet.com.np/og-image.png",
+    image: post.featuredImage || "https://marigoldbanquet.com.np/og-image.png",
     wordCount: post.content.split(/\s+/).length,
   } : null;
 
@@ -182,6 +103,9 @@ export default function BlogPostPage() {
           <h1 className="font-serif text-3xl text-burgundy mb-4">
             Post Not Found
           </h1>
+          <p className="text-muted-foreground mb-6">
+            The blog post you are looking for does not exist or may have been removed.
+          </p>
           <Link href="/blog">
             <Button className="bg-burgundy hover:bg-burgundy-dark text-white">
               Back to Blog
@@ -248,8 +172,18 @@ export default function BlogPostPage() {
             )}
           </div>
 
-          {/* Featured image placeholder */}
-          <div className="w-full h-64 md:h-96 bg-gradient-to-br from-burgundy to-burgundy-dark rounded-lg mb-8" />
+          {/* Featured image */}
+          {post.featuredImage ? (
+            <div className="w-full h-64 md:h-96 rounded-lg mb-8 overflow-hidden">
+              <img
+                src={post.featuredImage}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-full h-64 md:h-96 bg-gradient-to-br from-burgundy to-burgundy-dark rounded-lg mb-8" />
+          )}
         </motion.div>
 
         {/* Content */}

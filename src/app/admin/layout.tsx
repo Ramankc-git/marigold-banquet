@@ -28,13 +28,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-
-interface AdminUser {
-  id: string
-  email: string
-  name: string
-  role: string
-}
+import type { AdminUser } from '@/types'
 
 const navItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -171,7 +165,8 @@ export default function AdminLayout({
     }
 
     checkAuth()
-  }, [pathname, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount, not on every pathname change
 
   const handleLogout = async () => {
     try {

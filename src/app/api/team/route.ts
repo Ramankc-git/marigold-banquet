@@ -1,71 +1,43 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { apiResponse, apiError, handlePrismaError, clampInt, parseBoolean } from "@/lib/api-utils";
+import { apiResponse, apiError, handlePrismaError, parsePagination, parseFilters } from "@/lib/api-utils";
 import { teamMemberSchema } from "@/lib/validations";
+import { TeamService } from "@/services";
 
-// ── GET /api/team ────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const { limit, offset } = parsePagination(searchParams);
+    const { all } = parseFilters(searchParams);
 
-    const limit = clampInt(searchParams.get("limit"), 1, 100, 50);
-    const offset = clampInt(searchParams.get("offset"), 0, 10000, 0);
-    const all = parseBoolean(searchParams.get("all"));
+    const result = await TeamService.list({
+      limit, offset, all,
+      orderBy: { order: "asc" as const },
+    });
 
-    const where = all ? {} : { isActive: true };
-
-    const [members, total] = await Promise.all([
-      db.teamMember.findMany({
-        where,
-        orderBy: { order: "asc" },
-        take: limit,
-        skip: offset,
-      }),
-      db.teamMember.count({ where }),
-    ]);
-
-    return apiResponse({ members, total });
+    return apiResponse({ members: result.items, total: result.total });
   } catch (error) {
     return handlePrismaError(error);
   }
 }
 
-// ── POST /api/team ───────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
     const parsed = teamMemberSchema.safeParse(body);
     if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      return apiError("Validation failed", 400, fieldErrors);
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
-    const data = parsed.data;
-
-    const member = await db.teamMember.create({
-      data: {
-        name: data.name,
-        role: data.role,
-        bio: data.bio || null,
-        photo: data.photo || null,
-        isActive: data.isActive ?? true,
-        order: data.order ?? 0,
-      },
-    });
-
+    const member = await TeamService.create(parsed.data);
     return apiResponse(member, 201);
   } catch (error) {
     return handlePrismaError(error);
   }
 }
 
-// ── PATCH /api/team ──────────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const { id, ...rest } = body;
-
     if (!id || typeof id !== "string") {
       return apiError("Team member ID is required", 400);
     }
@@ -73,49 +45,34 @@ export async function PATCH(req: NextRequest) {
     const partialSchema = teamMemberSchema.partial();
     const parsed = partialSchema.safeParse(rest);
     if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      return apiError("Validation failed", 400, fieldErrors);
+      return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
     if (Object.keys(parsed.data).length === 0) {
       return apiError("No valid fields provided for update", 400);
     }
 
-    const existing = await db.teamMember.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Team member not found", 404);
-    }
-
-    const member = await db.teamMember.update({
-      where: { id },
-      data: parsed.data,
-    });
-
+    const member = await TeamService.update(id, parsed.data);
     return apiResponse(member);
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Team member not found", 404);
+    }
     return handlePrismaError(error);
   }
 }
 
-// ── DELETE /api/team ─────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    if (!id) return apiError("Team member ID is required", 400);
 
-    if (!id) {
-      return apiError("Team member ID is required", 400);
-    }
-
-    const existing = await db.teamMember.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Team member not found", 404);
-    }
-
-    await db.teamMember.delete({ where: { id } });
-
+    await TeamService.delete(id);
     return apiResponse({ deleted: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Team member not found", 404);
+    }
     return handlePrismaError(error);
   }
 }

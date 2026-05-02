@@ -1,37 +1,7 @@
 import { db } from "@/lib/db";
+import type { GalleryData, InstagramData, GalleryCategory } from "@/types";
 
-export interface GalleryData {
-  photos: {
-    id: string;
-    url: string;
-    caption: string | null;
-    category: string;
-    eventDate: string | null;
-    isActive: boolean;
-    order: number;
-    source: string;
-    instagramPermalink: string | null;
-    instagramMediaId: string | null;
-  }[];
-  videos: {
-    id: string;
-    youtubeUrl: string;
-    title: string;
-    category: string;
-    isActive: boolean;
-  }[];
-  total: number;
-}
-
-export interface InstagramData {
-  photos: {
-    id: string;
-    url: string;
-    caption: string | null;
-    instagramPermalink: string | null;
-  }[];
-  username: string;
-}
+export type { GalleryData, InstagramData };
 
 /**
  * Fetch gallery data server-side for ISR.
@@ -57,7 +27,7 @@ export async function getGalleryData(limit = 100): Promise<GalleryData> {
         id: p.id,
         url: p.url,
         caption: p.caption,
-        category: p.category,
+        category: p.category as GalleryCategory,
         eventDate: p.eventDate ?? null,
         isActive: p.isActive,
         order: p.order,

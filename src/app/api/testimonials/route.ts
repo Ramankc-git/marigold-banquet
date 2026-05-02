@@ -1,31 +1,26 @@
 import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { apiResponse, apiError, handlePrismaError, parseBoolean } from "@/lib/api-utils";
+import { apiResponse, apiError, handlePrismaError, parsePagination } from "@/lib/api-utils";
 import { testimonialSchema } from "@/lib/validations";
+import { TestimonialService } from "@/services";
 
-// ── GET /api/testimonials ────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const all = parseBoolean(searchParams.get("all"));
+    const all = searchParams.get("all") === "true";
 
-    const where: Record<string, unknown> = {};
-    if (!all) {
-      where.isActive = true;
-    }
-
-    const testimonials = await db.testimonial.findMany({
-      where,
-      orderBy: { order: "asc" },
+    const result = await TestimonialService.list({
+      all,
+      limit: 100,
+      offset: 0,
+      orderBy: { order: "asc" as const },
     });
 
-    return apiResponse(testimonials);
+    return apiResponse(result.items);
   } catch (error) {
     return handlePrismaError(error);
   }
 }
 
-// ── POST /api/testimonials ──────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -33,27 +28,13 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
-
-    const data = parsed.data;
-    const testimonial = await db.testimonial.create({
-      data: {
-        clientName: data.clientName,
-        eventType: data.eventType,
-        rating: data.rating ?? 5,
-        review: data.review,
-        photo: data.photo || null,
-        isActive: data.isActive ?? true,
-        order: data.order ?? 0,
-      },
-    });
-
+    const testimonial = await TestimonialService.create(parsed.data);
     return apiResponse(testimonial, 201);
   } catch (error) {
     return handlePrismaError(error);
   }
 }
 
-// ── PATCH /api/testimonials ─────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
@@ -63,46 +44,33 @@ export async function PATCH(req: NextRequest) {
       return apiError("Testimonial ID is required", 400);
     }
 
-    const existing = await db.testimonial.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Testimonial not found", 404);
-    }
-
     const parsed = testimonialSchema.partial().safeParse(updateData);
     if (!parsed.success) {
       return apiError("Validation failed", 400, parsed.error.flatten().fieldErrors);
     }
 
-    const testimonial = await db.testimonial.update({
-      where: { id },
-      data: parsed.data,
-    });
-
+    const testimonial = await TestimonialService.update(id, parsed.data);
     return apiResponse(testimonial);
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Testimonial not found", 404);
+    }
     return handlePrismaError(error);
   }
 }
 
-// ── DELETE /api/testimonials ────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    if (!id) return apiError("Testimonial ID is required", 400);
 
-    if (!id) {
-      return apiError("Testimonial ID is required", 400);
-    }
-
-    const existing = await db.testimonial.findUnique({ where: { id } });
-    if (!existing) {
-      return apiError("Testimonial not found", 404);
-    }
-
-    await db.testimonial.delete({ where: { id } });
-
+    await TestimonialService.delete(id);
     return apiResponse({ deleted: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND") {
+      return apiError("Testimonial not found", 404);
+    }
     return handlePrismaError(error);
   }
 }

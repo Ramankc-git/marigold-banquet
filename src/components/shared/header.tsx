@@ -17,26 +17,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { trackPhoneClick, trackCTAClick } from "@/lib/analytics";
+import { NAV_ITEMS, BUSINESS } from "@/constants";
 
-const navItems = [
-  { label: "Home", href: "/" },
-  { label: "Weddings", href: "/weddings" },
-  {
-    label: "Events",
-    href: "#",
-    children: [
-      { label: "Private Parties", href: "/parties" },
-      { label: "Corporate Events", href: "/corporate" },
-    ],
-  },
-  { label: "Spaces", href: "/spaces" },
-  { label: "Food & Drinks", href: "/food" },
-  { label: "Decoration", href: "/decoration" },
-  { label: "Gallery", href: "/gallery" },
-  { label: "Blog", href: "/blog" },
-  { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
-];
+const navItems = [...NAV_ITEMS] as { label: string; href: string; children?: { label: string; href: string }[] }[];
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -68,12 +51,12 @@ export function Header() {
           <div className="container mx-auto px-4 flex justify-between items-center h-10">
             <div className="flex items-center gap-4">
               <a
-                href="tel:+9779851111191"
+                href={`tel:${BUSINESS.phone}`}
                 className="flex items-center gap-1 hover:text-marigold-light transition-colors"
                 onClick={() => trackPhoneClick('header')}
               >
                 <Phone className="w-3 h-3" />
-                +977-9851111191
+                {BUSINESS.phone}
               </a>
               <span className="hidden sm:inline text-ivory/70">|</span>
               <span className="hidden sm:inline text-ivory/80">
@@ -82,7 +65,7 @@ export function Header() {
             </div>
             <div className="flex items-center gap-3">
               <a
-                href="https://www.facebook.com/MarigoldBanquetcafeHealthClub/"
+                href={BUSINESS.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-marigold-light transition-colors"
@@ -93,7 +76,7 @@ export function Header() {
                 </svg>
               </a>
               <a
-                href="https://www.instagram.com/marigoldbanquet/"
+                href={BUSINESS.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-marigold-light transition-colors"
@@ -182,7 +165,7 @@ export function Header() {
             </Link>
 
             <a
-              href="tel:+9779851111191"
+              href={`tel:${BUSINESS.phone}`}
               className={`md:hidden flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
                 scrolled
                   ? "text-burgundy hover:bg-burgundy/10"
@@ -266,12 +249,12 @@ export function Header() {
                       </Button>
                     </Link>
                     <a
-                      href="tel:+9779851111191"
+                      href={`tel:${BUSINESS.phone}`}
                       className="flex items-center justify-center gap-2 mt-3 text-burgundy hover:text-burgundy-dark transition-colors"
                       onClick={() => trackPhoneClick('header_mobile_menu')}
                     >
                       <Phone className="w-4 h-4" />
-                      +977-9851111191
+                      {BUSINESS.phone}
                     </a>
                   </div>
                 </div>

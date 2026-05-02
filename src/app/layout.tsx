@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/shared/layout-wrapper";
+import { BUSINESS } from "@/constants";
 
 const playfair = Playfair_Display({
   variable: "--font-serif",
@@ -18,8 +19,8 @@ const inter = Inter({
   display: "swap",
 });
 
-const SITE_URL = "https://marigoldbanquet.com.np";
-const SITE_NAME = "Marigold Banquet Hall & Party Palace";
+const SITE_URL = BUSINESS.website;
+const SITE_NAME = BUSINESS.name;
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 export const metadata: Metadata = {
@@ -113,15 +114,15 @@ export default function RootLayout({
   const localBusinessJsonLd = {
     "@context": "https://schema.org",
     "@type": ["LocalBusiness", "EventVenue", "WeddingVenue"],
-    name: "Marigold Banquet Hall and Party Palace",
+    name: BUSINESS.name,
     description:
       "Premium banquet hall and party palace in Tokha-07, Gairigaun, Kathmandu. Perfect venue for weddings, parties, and corporate events with in-house catering and decoration.",
-    url: "https://marigoldbanquet.com.np",
-    telephone: "+977-9851111191",
-    email: "info@marigoldbanquet.com.np",
+    url: BUSINESS.website,
+    telephone: BUSINESS.phone,
+    email: BUSINESS.email,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Gairigaun, Tokha-07",
+      streetAddress: BUSINESS.address,
       addressLocality: "Kathmandu",
       addressRegion: "Bagmati",
       postalCode: "44600",
@@ -129,8 +130,8 @@ export default function RootLayout({
     },
     geo: {
       "@type": "GeoCoordinates",
-      latitude: 27.7466368,
-      longitude: 85.320588,
+      latitude: BUSINESS.coordinates.lat,
+      longitude: BUSINESS.coordinates.lng,
     },
     openingHoursSpecification: [
       {
@@ -150,11 +151,11 @@ export default function RootLayout({
     ],
     priceRange: "$$",
     image: [
-      "https://marigoldbanquet.com.np/og-image.png",
-      "https://marigoldbanquet.com.np/logo.svg",
+      `${BUSINESS.website}/og-image.png`,
+      `${BUSINESS.website}/logo.svg`,
     ],
     sameAs: [
-      "https://www.facebook.com/MarigoldBanquetcafeHealthClub/",
+      BUSINESS.social.facebook,
     ],
     aggregateRating: {
       "@type": "AggregateRating",
@@ -197,7 +198,7 @@ export default function RootLayout({
       "@type": "ReserveAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://marigoldbanquet.com.np/booking",
+        urlTemplate: `${BUSINESS.website}/booking`,
         inLanguage: "en",
       },
       result: {
@@ -211,12 +212,12 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Marigold Banquet Hall & Party Palace",
-    url: "https://marigoldbanquet.com.np",
+    url: BUSINESS.website,
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://marigoldbanquet.com.np/?q={search_term_string}",
+        urlTemplate: `${BUSINESS.website}/?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

@@ -1,96 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Clock, ArrowRight, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SectionHero } from '@/components/shared/section-hero';
 
-const blogPosts = [
-  {
-    id: 1,
-    slug: 'how-to-plan-the-perfect-wedding-in-kathmandu',
-    title: 'How to Plan the Perfect Wedding in Kathmandu',
-    category: 'Wedding Tips',
-    readTime: 5,
-    excerpt:
-      'Planning a wedding in Kathmandu? Here\'s your complete guide to venues, vendors, and traditions.',
-    gradient: 'from-burgundy/80 to-rose-gold/60',
-  },
-  {
-    id: 2,
-    slug: 'top-wedding-decoration-trends-in-nepal-2025',
-    title: 'Top Wedding Decoration Trends in Nepal 2025',
-    category: 'Decoration Trends',
-    readTime: 6,
-    excerpt:
-      'Discover the latest decoration trends transforming Nepali weddings.',
-    gradient: 'from-marigold/70 to-marigold-light/50',
-  },
-  {
-    id: 3,
-    slug: 'complete-bratabandha-planning-guide-for-modern-families',
-    title: 'Complete Bratabandha Planning Guide for Modern Families',
-    category: 'Nepal Event Culture',
-    readTime: 7,
-    excerpt:
-      'Everything you need to know about organizing a memorable bratabandha ceremony.',
-    gradient: 'from-rose-gold/70 to-burgundy/50',
-  },
-  {
-    id: 4,
-    slug: 'how-to-choose-the-right-banquet-hall-in-kathmandu',
-    title: 'How to Choose the Right Banquet Hall in Kathmandu',
-    category: 'Venue Guide',
-    readTime: 5,
-    excerpt:
-      'Key factors to consider when selecting the perfect banquet hall for your event.',
-    gradient: 'from-burgundy-dark/70 to-burgundy/50',
-  },
-  {
-    id: 5,
-    slug: 'best-catering-menu-ideas-for-nepali-wedding-receptions',
-    title: 'Best Catering Menu Ideas for Nepali Wedding Receptions',
-    category: 'Food & Catering',
-    readTime: 6,
-    excerpt:
-      'From traditional to fusion, explore menu options that delight every guest.',
-    gradient: 'from-marigold-dark/70 to-marigold/50',
-  },
-  {
-    id: 6,
-    slug: 'pasni-ceremony-modern-vs-traditional-setup-ideas',
-    title: 'Pasni Ceremony: Modern vs Traditional Setup Ideas',
-    category: 'Nepal Event Culture',
-    readTime: 5,
-    excerpt:
-      'Balancing tradition with modern touches for your child\'s pasni ceremony.',
-    gradient: 'from-rose-gold/60 to-marigold-light/40',
-  },
-  {
-    id: 7,
-    slug: 'corporate-event-planning-checklist-for-kathmandu-businesses',
-    title: 'Corporate Event Planning Checklist for Kathmandu Businesses',
-    category: 'Corporate Events',
-    readTime: 4,
-    excerpt:
-      'A comprehensive checklist to ensure your corporate event runs smoothly.',
-    gradient: 'from-burgundy/60 to-ivory-dark/60',
-  },
-  {
-    id: 8,
-    slug: 'budget-wedding-planning-tips-in-nepal',
-    title: 'Budget Wedding Planning Tips in Nepal',
-    category: 'Wedding Tips',
-    readTime: 6,
-    excerpt:
-      'Smart strategies for a beautiful wedding without breaking the bank.',
-    gradient: 'from-marigold/60 to-rose-gold/50',
-  },
-];
+interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  category: string;
+  readTime: number | null;
+  featuredImage: string | null;
+  publishedAt: string | null;
+}
 
-const categories = [
+const CATEGORIES = [
   'All',
   'Wedding Tips',
   'Party Ideas',
@@ -99,7 +28,17 @@ const categories = [
   'Food & Catering',
   'Venue Guide',
   'Nepal Event Culture',
-];
+] as const;
+
+const categorySlugToLabel: Record<string, string> = {
+  wedding_tips: 'Wedding Tips',
+  party_ideas: 'Party Ideas',
+  corporate_events: 'Corporate Events',
+  decoration_trends: 'Decoration Trends',
+  food_catering: 'Food & Catering',
+  venue_guide: 'Venue Guide',
+  nepal_event_culture: 'Nepal Event Culture',
+};
 
 const categoryColors: Record<string, string> = {
   'Wedding Tips': 'bg-rose-gold/10 text-rose-gold',
@@ -111,13 +50,50 @@ const categoryColors: Record<string, string> = {
   'Nepal Event Culture': 'bg-rose-gold/10 text-rose-gold',
 };
 
+const gradients = [
+  'from-burgundy/80 to-rose-gold/60',
+  'from-marigold/70 to-marigold-light/50',
+  'from-rose-gold/70 to-burgundy/50',
+  'from-burgundy-dark/70 to-burgundy/50',
+  'from-marigold-dark/70 to-marigold/50',
+  'from-rose-gold/60 to-marigold-light/40',
+  'from-burgundy/60 to-ivory-dark/60',
+  'from-marigold/60 to-rose-gold/50',
+];
+
+function getCategoryLabel(slug: string): string {
+  return categorySlugToLabel[slug] || slug;
+}
+
 export default function BlogPage() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const res = await fetch('/api/blogs');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.posts) {
+            setPosts(data.posts);
+          }
+        }
+      } catch {
+        // Silently fail — the "no posts" state will show
+      }
+      setLoading(false);
+    }
+    fetchPosts();
+  }, []);
 
   const filteredPosts =
     activeCategory === 'All'
-      ? blogPosts
-      : blogPosts.filter((post) => post.category === activeCategory);
+      ? posts
+      : posts.filter(
+          (post) => getCategoryLabel(post.category) === activeCategory
+        );
 
   return (
     <div className="min-h-screen">
@@ -136,7 +112,7 @@ export default function BlogPage() {
       <section className="py-12 bg-ivory">
         <div className="container mx-auto px-4">
           <div className="flex flex-wrap gap-2 justify-center">
-            {categories.map((category) => (
+            {CATEGORIES.map((category) => (
               <button
                 key={category}
                 onClick={() => setActiveCategory(category)}
@@ -156,7 +132,24 @@ export default function BlogPage() {
       {/* Blog Grid */}
       <section className="py-16 bg-ivory">
         <div className="container mx-auto px-4">
-          {filteredPosts.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl overflow-hidden shadow-sm animate-pulse"
+                >
+                  <div className="h-48 bg-gray-200" />
+                  <div className="p-6 space-y-3">
+                    <div className="h-3 bg-gray-200 rounded w-1/3" />
+                    <div className="h-5 bg-gray-200 rounded w-full" />
+                    <div className="h-4 bg-gray-200 rounded w-5/6" />
+                    <div className="h-3 bg-gray-200 rounded w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredPosts.length === 0 ? (
             <div className="text-center py-16">
               <BookOpen className="w-16 h-16 text-burgundy/30 mx-auto mb-4" />
               <h3 className="font-serif text-2xl text-burgundy mb-2">
@@ -178,22 +171,42 @@ export default function BlogPage() {
                   className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 luxury-card-hover"
                 >
                   <Link href={`/blog/${post.slug}`} className="block">
-                  {/* Image placeholder */}
-                  <div
-                    className={`h-48 bg-gradient-to-br ${post.gradient} relative overflow-hidden`}
-                  >
-                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors" />
-                    <div className="absolute bottom-4 left-4">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                          categoryColors[post.category] ||
-                          'bg-marigold/10 text-marigold-dark'
-                        }`}
-                      >
-                        {post.category}
-                      </span>
+                  {/* Image area */}
+                  {post.featuredImage ? (
+                    <div className="h-48 relative overflow-hidden">
+                      <img
+                        src={post.featuredImage}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute bottom-4 left-4">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            categoryColors[getCategoryLabel(post.category)] ||
+                            'bg-marigold/10 text-marigold-dark'
+                          }`}
+                        >
+                          {getCategoryLabel(post.category)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={`h-48 bg-gradient-to-br ${gradients[index % gradients.length]} relative overflow-hidden`}
+                    >
+                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/5 transition-colors" />
+                      <div className="absolute bottom-4 left-4">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            categoryColors[getCategoryLabel(post.category)] ||
+                            'bg-marigold/10 text-marigold-dark'
+                          }`}
+                        >
+                          {getCategoryLabel(post.category)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="p-6">
@@ -201,12 +214,12 @@ export default function BlogPage() {
                       {post.title}
                     </h3>
                     <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                      {post.excerpt}
+                      {post.excerpt || post.content.substring(0, 120) + '...'}
                     </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>{post.readTime} min read</span>
+                        <span>{post.readTime || 5} min read</span>
                       </div>
                       <span className="text-marigold-dark text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
                         Read More

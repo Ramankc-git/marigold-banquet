@@ -1,29 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { NextRequest } from "next/server";
+import { apiResponse, apiError, handlePrismaError } from "@/lib/api-utils";
+import { BlogService } from "@/services";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const slug = searchParams.get("slug");
+    if (!slug) return apiError("Slug is required", 400);
 
-    if (!slug) {
-      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
-    }
+    const post = await BlogService.getBySlug(slug);
+    if (!post) return apiError("Post not found", 404);
 
-    const post = await db.blogPost.findUnique({
-      where: { slug, isPublished: true },
-    });
-
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ post });
+    return apiResponse({ post });
   } catch (error) {
-    console.error("Fetch blog post error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch blog post" },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
