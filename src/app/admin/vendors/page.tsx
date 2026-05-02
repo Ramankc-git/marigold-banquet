@@ -14,6 +14,7 @@ import {
   ToggleRight,
   Filter,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -136,7 +137,7 @@ const emptyForm = {
 }
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors)
+  const [vendors, setVendors] = useState<Vendor[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -155,7 +156,7 @@ export default function VendorsPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -201,6 +202,10 @@ export default function VendorsPage() {
           setVendors((prev) =>
             prev.map((v) => (v.id === editingVendor.id ? { ...v, ...form } as Vendor : v))
           )
+          toast.success('Vendor updated successfully')
+        } else {
+          toast.error('Failed to update vendor. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/vendors', {
@@ -214,22 +219,15 @@ export default function VendorsPage() {
           if (created) {
             setVendors((prev) => [created, ...prev])
           }
+          toast.success('Vendor added successfully')
+        } else {
+          toast.error('Failed to add vendor. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingVendor) {
-        setVendors((prev) =>
-          prev.map((v) => (v.id === editingVendor.id ? { ...v, ...form } as Vendor : v))
-        )
-      } else {
-        const newVendor: Vendor = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setVendors((prev) => [newVendor, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -239,11 +237,16 @@ export default function VendorsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/vendors?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/vendors?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setVendors((prev) => prev.filter((v) => v.id !== id))
+        toast.success('Vendor deleted')
+      } else {
+        toast.error('Failed to delete vendor. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setVendors((prev) => prev.filter((v) => v.id !== id))
   }
 
   const toggleActive = async (vendor: Vendor) => {
@@ -251,16 +254,19 @@ export default function VendorsPage() {
     const updatedVendor = { ...vendor, isActive: newStatus }
 
     try {
-      await fetch('/api/vendors', {
+      const res = await fetch('/api/vendors', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: vendor.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setVendors((prev) => prev.map((v) => (v.id === vendor.id ? updatedVendor : v)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setVendors((prev) => prev.map((v) => (v.id === vendor.id ? updatedVendor : v)))
   }
 
   const filteredVendors = categoryFilter === 'all'

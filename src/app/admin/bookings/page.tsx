@@ -10,6 +10,7 @@ import {
   Users,
   DollarSign,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -95,7 +96,7 @@ function formatCurrency(amount: number) {
 }
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  const [bookings, setBookings] = useState<Booking[]>([])
 
   useEffect(() => {
     async function load() {
@@ -109,7 +110,7 @@ export default function BookingsPage() {
           }
         }
       } catch {
-        // Use mock data
+        toast.error('Failed to load bookings. Please try again.')
       }
     }
     load()

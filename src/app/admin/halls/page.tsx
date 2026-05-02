@@ -12,6 +12,7 @@ import {
   Users,
   Maximize,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -114,7 +115,7 @@ const emptyForm = {
 }
 
 export default function HallsPage() {
-  const [halls, setHalls] = useState<Hall[]>(mockHalls)
+  const [halls, setHalls] = useState<Hall[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingHall, setEditingHall] = useState<Hall | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -132,7 +133,7 @@ export default function HallsPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load halls. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -197,6 +198,10 @@ export default function HallsPage() {
                 : h
             )
           )
+          toast.success('Hall updated successfully')
+        } else {
+          toast.error('Failed to update hall. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/halls', {
@@ -210,26 +215,15 @@ export default function HallsPage() {
           if (created) {
             setHalls((prev) => [created, ...prev])
           }
+          toast.success('Hall created successfully')
+        } else {
+          toast.error('Failed to create hall. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingHall) {
-        setHalls((prev) =>
-          prev.map((h) =>
-            h.id === editingHall.id
-              ? { ...h, ...payload, features: payload.features } as Hall
-              : h
-          )
-        )
-      } else {
-        const newHall: Hall = {
-          id: `local-${Date.now()}`,
-          ...payload,
-          createdAt: new Date().toISOString(),
-        }
-        setHalls((prev) => [newHall, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -239,11 +233,16 @@ export default function HallsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/halls?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/halls?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setHalls((prev) => prev.filter((h) => h.id !== id))
+        toast.success('Hall deleted')
+      } else {
+        toast.error('Failed to delete hall. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setHalls((prev) => prev.filter((h) => h.id !== id))
   }
 
   const toggleActive = async (hall: Hall) => {
@@ -251,16 +250,19 @@ export default function HallsPage() {
     const updatedHall = { ...hall, isActive: newStatus }
 
     try {
-      await fetch('/api/halls', {
+      const res = await fetch('/api/halls', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: hall.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setHalls((prev) => prev.map((h) => (h.id === hall.id ? updatedHall : h)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setHalls((prev) => prev.map((h) => (h.id === hall.id ? updatedHall : h)))
   }
 
   return (

@@ -12,6 +12,7 @@ import {
   Filter,
   MessageCircleQuestion,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -123,7 +124,7 @@ const emptyForm = {
 }
 
 export default function FAQPage() {
-  const [faqs, setFaqs] = useState<FAQ[]>(mockFAQs)
+  const [faqs, setFaqs] = useState<FAQ[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -142,7 +143,7 @@ export default function FAQPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -184,6 +185,10 @@ export default function FAQPage() {
           setFaqs((prev) =>
             prev.map((f) => (f.id === editingFAQ.id ? { ...f, ...form } as FAQ : f))
           )
+          toast.success('FAQ updated successfully')
+        } else {
+          toast.error('Failed to update FAQ. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/faq', {
@@ -197,22 +202,15 @@ export default function FAQPage() {
           if (created) {
             setFaqs((prev) => [created, ...prev])
           }
+          toast.success('FAQ created successfully')
+        } else {
+          toast.error('Failed to create FAQ. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingFAQ) {
-        setFaqs((prev) =>
-          prev.map((f) => (f.id === editingFAQ.id ? { ...f, ...form } as FAQ : f))
-        )
-      } else {
-        const newFAQ: FAQ = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setFaqs((prev) => [newFAQ, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -222,11 +220,16 @@ export default function FAQPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/faq?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/faq?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setFaqs((prev) => prev.filter((f) => f.id !== id))
+        toast.success('FAQ deleted')
+      } else {
+        toast.error('Failed to delete FAQ. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setFaqs((prev) => prev.filter((f) => f.id !== id))
   }
 
   const toggleActive = async (faq: FAQ) => {
@@ -234,16 +237,19 @@ export default function FAQPage() {
     const updatedFAQ = { ...faq, isActive: newStatus }
 
     try {
-      await fetch('/api/faq', {
+      const res = await fetch('/api/faq', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: faq.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setFaqs((prev) => prev.map((f) => (f.id === faq.id ? updatedFAQ : f)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setFaqs((prev) => prev.map((f) => (f.id === faq.id ? updatedFAQ : f)))
   }
 
   const filteredFAQs = categoryFilter === 'all'

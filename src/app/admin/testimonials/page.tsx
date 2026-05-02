@@ -13,6 +13,7 @@ import {
   User,
   CheckCircle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -127,7 +128,7 @@ const emptyForm = {
 }
 
 export default function TestimonialsPage() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(mockTestimonials)
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -145,7 +146,7 @@ export default function TestimonialsPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -193,6 +194,10 @@ export default function TestimonialsPage() {
                 : t
             )
           )
+          toast.success('Testimonial updated successfully')
+        } else {
+          toast.error('Failed to update testimonial. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/testimonials', {
@@ -206,26 +211,15 @@ export default function TestimonialsPage() {
           if (created) {
             setTestimonials((prev) => [created, ...prev])
           }
+          toast.success('Testimonial created successfully')
+        } else {
+          toast.error('Failed to create testimonial. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update fallback
-      if (editingTestimonial) {
-        setTestimonials((prev) =>
-          prev.map((t) =>
-            t.id === editingTestimonial.id
-              ? ({ ...t, ...form } as Testimonial)
-              : t
-          )
-        )
-      } else {
-        const newTestimonial: Testimonial = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setTestimonials((prev) => [newTestimonial, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -235,11 +229,16 @@ export default function TestimonialsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/testimonials?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/testimonials?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTestimonials((prev) => prev.filter((t) => t.id !== id))
+        toast.success('Testimonial deleted')
+      } else {
+        toast.error('Failed to delete testimonial. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setTestimonials((prev) => prev.filter((t) => t.id !== id))
   }
 
   const toggleActive = async (testimonial: Testimonial) => {
@@ -247,18 +246,21 @@ export default function TestimonialsPage() {
     const updated = { ...testimonial, isActive: newStatus }
 
     try {
-      await fetch('/api/testimonials', {
+      const res = await fetch('/api/testimonials', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: testimonial.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setTestimonials((prev) =>
+          prev.map((t) => (t.id === testimonial.id ? updated : t))
+        )
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setTestimonials((prev) =>
-      prev.map((t) => (t.id === testimonial.id ? updated : t))
-    )
   }
 
   const averageRating =

@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -83,7 +84,7 @@ const emptyForm = {
 }
 
 export default function TeamPage() {
-  const [members, setMembers] = useState<TeamMember[]>(mockMembers)
+  const [members, setMembers] = useState<TeamMember[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -102,7 +103,7 @@ export default function TeamPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -145,6 +146,10 @@ export default function TeamPage() {
           setMembers((prev) =>
             prev.map((m) => (m.id === editingMember.id ? { ...m, ...form } as TeamMember : m))
           )
+          toast.success('Team member updated successfully')
+        } else {
+          toast.error('Failed to update team member. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/team', {
@@ -158,22 +163,15 @@ export default function TeamPage() {
           if (created) {
             setMembers((prev) => [created, ...prev])
           }
+          toast.success('Team member added successfully')
+        } else {
+          toast.error('Failed to add team member. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingMember) {
-        setMembers((prev) =>
-          prev.map((m) => (m.id === editingMember.id ? { ...m, ...form } as TeamMember : m))
-        )
-      } else {
-        const newMember: TeamMember = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setMembers((prev) => [newMember, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -183,11 +181,16 @@ export default function TeamPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/team?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/team?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setMembers((prev) => prev.filter((m) => m.id !== id))
+        toast.success('Team member removed')
+      } else {
+        toast.error('Failed to remove team member. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setMembers((prev) => prev.filter((m) => m.id !== id))
   }
 
   const toggleActive = async (member: TeamMember) => {
@@ -195,16 +198,19 @@ export default function TeamPage() {
     const updatedMember = { ...member, isActive: newStatus }
 
     try {
-      await fetch('/api/team', {
+      const res = await fetch('/api/team', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: member.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setMembers((prev) => prev.map((m) => (m.id === member.id ? updatedMember : m)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setMembers((prev) => prev.map((m) => (m.id === member.id ? updatedMember : m)))
   }
 
   return (

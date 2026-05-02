@@ -13,6 +13,7 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -99,7 +100,7 @@ const emptyForm = {
 }
 
 export default function OffersPage() {
-  const [offers, setOffers] = useState<Offer[]>(mockOffers)
+  const [offers, setOffers] = useState<Offer[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -117,7 +118,7 @@ export default function OffersPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -164,6 +165,10 @@ export default function OffersPage() {
                 : o
             )
           )
+          toast.success('Offer updated successfully')
+        } else {
+          toast.error('Failed to update offer. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/offers', {
@@ -177,26 +182,15 @@ export default function OffersPage() {
           if (created) {
             setOffers((prev) => [created, ...prev])
           }
+          toast.success('Offer created successfully')
+        } else {
+          toast.error('Failed to create offer. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update fallback
-      if (editingOffer) {
-        setOffers((prev) =>
-          prev.map((o) =>
-            o.id === editingOffer.id
-              ? ({ ...o, ...form } as Offer)
-              : o
-          )
-        )
-      } else {
-        const newOffer: Offer = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setOffers((prev) => [newOffer, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -206,11 +200,16 @@ export default function OffersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/offers?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/offers?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setOffers((prev) => prev.filter((o) => o.id !== id))
+        toast.success('Offer deleted')
+      } else {
+        toast.error('Failed to delete offer. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setOffers((prev) => prev.filter((o) => o.id !== id))
   }
 
   const toggleActive = async (offer: Offer) => {
@@ -218,18 +217,21 @@ export default function OffersPage() {
     const updated = { ...offer, isActive: newStatus }
 
     try {
-      await fetch('/api/offers', {
+      const res = await fetch('/api/offers', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: offer.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setOffers((prev) =>
+          prev.map((o) => (o.id === offer.id ? updated : o))
+        )
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setOffers((prev) =>
-      prev.map((o) => (o.id === offer.id ? updated : o))
-    )
   }
 
   const activeCount = offers.filter((o) => o.isActive && !isExpired(o.endDate)).length

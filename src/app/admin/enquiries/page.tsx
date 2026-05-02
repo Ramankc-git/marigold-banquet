@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -122,7 +123,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function EnquiriesPage() {
-  const [enquiries, setEnquiries] = useState<Enquiry[]>(mockEnquiries)
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null)
@@ -143,7 +144,7 @@ export default function EnquiriesPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -180,9 +181,12 @@ export default function EnquiriesPage() {
         if (selectedEnquiry?.id === id) {
           setSelectedEnquiry({ ...selectedEnquiry, status: newStatus })
         }
+        toast.success('Status updated successfully')
+      } else {
+        toast.error('Failed to update status. Please try again.')
       }
     } catch {
-      // Handle error silently
+      toast.error('Failed to update enquiry status. Please try again.')
     }
   }
 

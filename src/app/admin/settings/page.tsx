@@ -18,6 +18,7 @@ import {
   BarChart3,
   ExternalLink,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -100,11 +101,12 @@ export default function SettingsPage() {
       if (res.ok) {
         setShowSuccess(true)
         setTimeout(() => setShowSuccess(false), 3000)
+        toast.success('Settings saved successfully')
+      } else {
+        toast.error('Failed to save settings. Server returned an error.')
       }
     } catch {
-      // Still show success for demo
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+      toast.error('Failed to save settings. Please check your connection and try again.')
     } finally {
       setSaving(false)
     }

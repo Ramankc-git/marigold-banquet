@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Settings,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -132,7 +133,7 @@ export default function GalleryPage() {
         }
       }
     } catch {
-      // Use empty state
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -150,7 +151,7 @@ export default function GalleryPage() {
         }
       }
     } catch {
-      // Settings fetch failed
+      toast.error('Failed to load settings. Please try again.')
     }
   }, [])
 
@@ -180,32 +181,29 @@ export default function GalleryPage() {
         if (created) {
           setPhotos((prev) => [created, ...prev])
         }
+        toast.success('Photo added successfully')
         setAddDialogOpen(false)
         setNewPhoto({ url: '', caption: '', category: 'weddings' })
+      } else {
+        toast.error('Failed to add photo. Please try again.')
       }
     } catch {
-      const photo: GalleryPhoto = {
-        id: `local-${Date.now()}`,
-        url: newPhoto.url,
-        caption: newPhoto.caption || null,
-        category: newPhoto.category,
-        isActive: true,
-        order: 0,
-        source: 'manual',
-      }
-      setPhotos((prev) => [photo, ...prev])
-      setAddDialogOpen(false)
-      setNewPhoto({ url: '', caption: '', category: 'weddings' })
+      toast.error('Failed to add photo. Please try again.')
     }
   }
 
   const handleDeletePhoto = async (id: string) => {
     try {
-      await fetch(`/api/gallery?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/gallery?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPhotos((prev) => prev.filter((p) => p.id !== id))
+        toast.success('Photo deleted')
+      } else {
+        toast.error('Failed to delete photo. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setPhotos((prev) => prev.filter((p) => p.id !== id))
   }
 
   const openEditDialog = (photo: GalleryPhoto) => {
@@ -240,11 +238,12 @@ export default function GalleryPage() {
             prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
           )
         }
+        toast.success('Photo updated successfully')
+      } else {
+        toast.error('Failed to update photo. Please try again.')
       }
     } catch {
-      setPhotos((prev) =>
-        prev.map((p) => (p.id === editingPhoto.id ? { ...p, ...editForm } : p))
-      )
+      toast.error('Failed to update photo. Please try again.')
     }
     setEditDialogOpen(false)
     setEditingPhoto(null)
@@ -397,7 +396,7 @@ export default function GalleryPage() {
       })
       setInstagramSettingsDialogOpen(false)
     } catch {
-      // Handle error
+      toast.error('Failed to save Instagram settings. Please try again.')
     } finally {
       setSavingSettings(false)
     }

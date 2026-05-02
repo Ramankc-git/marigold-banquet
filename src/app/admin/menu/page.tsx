@@ -13,6 +13,7 @@ import {
   Leaf,
   Star,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -144,7 +145,7 @@ const emptyForm = {
 }
 
 export default function MenuPage() {
-  const [items, setItems] = useState<MenuItem[]>(mockMenuItems)
+  const [items, setItems] = useState<MenuItem[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -163,7 +164,7 @@ export default function MenuPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -213,6 +214,10 @@ export default function MenuPage() {
                 : i
             )
           )
+          toast.success('Menu item updated successfully')
+        } else {
+          toast.error('Failed to update menu item. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/menu', {
@@ -226,26 +231,15 @@ export default function MenuPage() {
           if (created) {
             setItems((prev) => [created, ...prev])
           }
+          toast.success('Menu item created successfully')
+        } else {
+          toast.error('Failed to create menu item. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingItem) {
-        setItems((prev) =>
-          prev.map((i) =>
-            i.id === editingItem.id
-              ? { ...i, ...form } as MenuItem
-              : i
-          )
-        )
-      } else {
-        const newItem: MenuItem = {
-          id: `local-${Date.now()}`,
-          ...form,
-          createdAt: new Date().toISOString(),
-        }
-        setItems((prev) => [newItem, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -255,11 +249,16 @@ export default function MenuPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/menu?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/menu?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setItems((prev) => prev.filter((i) => i.id !== id))
+        toast.success('Menu item deleted')
+      } else {
+        toast.error('Failed to delete menu item. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setItems((prev) => prev.filter((i) => i.id !== id))
   }
 
   const toggleActive = async (item: MenuItem) => {
@@ -267,16 +266,19 @@ export default function MenuPage() {
     const updatedItem = { ...item, isActive: newStatus }
 
     try {
-      await fetch('/api/menu', {
+      const res = await fetch('/api/menu', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: item.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setItems((prev) => prev.map((i) => (i.id === item.id ? updatedItem : i)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setItems((prev) => prev.map((i) => (i.id === item.id ? updatedItem : i)))
   }
 
   const filteredItems =

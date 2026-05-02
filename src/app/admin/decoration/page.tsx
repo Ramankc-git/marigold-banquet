@@ -13,6 +13,7 @@ import {
   Layers,
   CheckCircle,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -147,7 +148,7 @@ const emptyForm = {
 }
 
 export default function DecorationPage() {
-  const [decorations, setDecorations] = useState<Decoration[]>(mockDecorations)
+  const [decorations, setDecorations] = useState<Decoration[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingDecoration, setEditingDecoration] = useState<Decoration | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -165,7 +166,7 @@ export default function DecorationPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -243,6 +244,10 @@ export default function DecorationPage() {
                 : d
             )
           )
+          toast.success('Decoration theme updated successfully')
+        } else {
+          toast.error('Failed to update decoration theme. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/decorations', {
@@ -256,26 +261,15 @@ export default function DecorationPage() {
           if (created) {
             setDecorations((prev) => [created, ...prev])
           }
+          toast.success('Decoration theme created successfully')
+        } else {
+          toast.error('Failed to create decoration theme. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update fallback
-      if (editingDecoration) {
-        setDecorations((prev) =>
-          prev.map((d) =>
-            d.id === editingDecoration.id
-              ? ({ ...d, ...payload } as Decoration)
-              : d
-          )
-        )
-      } else {
-        const newDecoration: Decoration = {
-          id: `local-${Date.now()}`,
-          ...payload,
-          createdAt: new Date().toISOString(),
-        }
-        setDecorations((prev) => [newDecoration, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -285,11 +279,16 @@ export default function DecorationPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/decorations?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/decorations?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setDecorations((prev) => prev.filter((d) => d.id !== id))
+        toast.success('Decoration theme deleted')
+      } else {
+        toast.error('Failed to delete decoration theme. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setDecorations((prev) => prev.filter((d) => d.id !== id))
   }
 
   const toggleActive = async (decoration: Decoration) => {
@@ -297,18 +296,21 @@ export default function DecorationPage() {
     const updated = { ...decoration, isActive: newStatus }
 
     try {
-      await fetch('/api/decorations', {
+      const res = await fetch('/api/decorations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: decoration.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setDecorations((prev) =>
+          prev.map((d) => (d.id === decoration.id ? updated : d))
+        )
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setDecorations((prev) =>
-      prev.map((d) => (d.id === decoration.id ? updated : d))
-    )
   }
 
   return (

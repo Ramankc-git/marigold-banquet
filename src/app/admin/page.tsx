@@ -14,6 +14,7 @@ import {
   Clock,
   Phone,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -193,8 +194,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function AdminDashboard() {
-  const [enquiries, setEnquiries] = useState<Enquiry[]>(mockEnquiries)
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [galleryCount, setGalleryCount] = useState(24)
 
   useEffect(() => {
@@ -228,7 +229,7 @@ export default function AdminDashboard() {
           }
         }
       } catch {
-        // Use mock data if fetch fails
+        toast.error('Failed to load dashboard data. Please refresh the page.')
       }
     }
     fetchData()

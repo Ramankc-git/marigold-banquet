@@ -11,6 +11,7 @@ import {
   ToggleRight,
   Filter,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -194,7 +195,7 @@ const emptyForm = {
 }
 
 export default function PackagesPage() {
-  const [packages, setPackages] = useState<PackageItem[]>(mockPackages)
+  const [packages, setPackages] = useState<PackageItem[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingPackage, setEditingPackage] = useState<PackageItem | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -213,7 +214,7 @@ export default function PackagesPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -278,6 +279,10 @@ export default function PackagesPage() {
                 : p
             )
           )
+          toast.success('Package updated successfully')
+        } else {
+          toast.error('Failed to update package. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/packages', {
@@ -291,26 +296,15 @@ export default function PackagesPage() {
           if (created) {
             setPackages((prev) => [created, ...prev])
           }
+          toast.success('Package created successfully')
+        } else {
+          toast.error('Failed to create package. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingPackage) {
-        setPackages((prev) =>
-          prev.map((p) =>
-            p.id === editingPackage.id
-              ? { ...p, ...payload, includes: payload.includes } as PackageItem
-              : p
-          )
-        )
-      } else {
-        const newPkg: PackageItem = {
-          id: `local-${Date.now()}`,
-          ...payload,
-          createdAt: new Date().toISOString(),
-        }
-        setPackages((prev) => [newPkg, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -320,11 +314,16 @@ export default function PackagesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/packages?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/packages?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPackages((prev) => prev.filter((p) => p.id !== id))
+        toast.success('Package deleted')
+      } else {
+        toast.error('Failed to delete package. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setPackages((prev) => prev.filter((p) => p.id !== id))
   }
 
   const toggleActive = async (pkg: PackageItem) => {
@@ -332,16 +331,19 @@ export default function PackagesPage() {
     const updatedPkg = { ...pkg, isActive: newStatus }
 
     try {
-      await fetch('/api/packages', {
+      const res = await fetch('/api/packages', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: pkg.id, isActive: newStatus }),
       })
+      if (res.ok) {
+        setPackages((prev) => prev.map((p) => (p.id === pkg.id ? updatedPkg : p)))
+      } else {
+        toast.error('Failed to update status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setPackages((prev) => prev.map((p) => (p.id === pkg.id ? updatedPkg : p)))
   }
 
   const filteredPackages =

@@ -12,6 +12,7 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -147,7 +148,7 @@ const emptyForm = {
 }
 
 export default function BlogPage() {
-  const [posts, setPosts] = useState<BlogPost[]>(mockPosts)
+  const [posts, setPosts] = useState<BlogPost[]>([])
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -165,7 +166,7 @@ export default function BlogPage() {
         }
       }
     } catch {
-      // Use mock data
+      toast.error('Failed to load data from server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -216,6 +217,10 @@ export default function BlogPage() {
           setPosts((prev) =>
             prev.map((p) => (p.id === editingPost.id ? { ...p, ...form } as BlogPost : p))
           )
+          toast.success('Blog post updated successfully')
+        } else {
+          toast.error('Failed to update blog post. Please try again.')
+          return
         }
       } else {
         const res = await fetch('/api/blogs', {
@@ -229,24 +234,15 @@ export default function BlogPage() {
           if (created) {
             setPosts((prev) => [created, ...prev])
           }
+          toast.success('Blog post created successfully')
+        } else {
+          toast.error('Failed to create blog post. Please try again.')
+          return
         }
       }
     } catch {
-      // Local update
-      if (editingPost) {
-        setPosts((prev) =>
-          prev.map((p) => (p.id === editingPost.id ? { ...p, ...form } as BlogPost : p))
-        )
-      } else {
-        const newPost: BlogPost = {
-          id: `local-${Date.now()}`,
-          ...form,
-          readTime: Math.ceil(form.content.split(' ').length / 200),
-          createdAt: new Date().toISOString(),
-          publishedAt: form.isPublished ? new Date().toISOString() : undefined,
-        }
-        setPosts((prev) => [newPost, ...prev])
-      }
+      toast.error('Network error. Please check your connection and try again.')
+      return
     }
 
     setFormDialogOpen(false)
@@ -256,11 +252,16 @@ export default function BlogPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/blogs?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/blogs?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPosts((prev) => prev.filter((p) => p.id !== id))
+        toast.success('Blog post deleted')
+      } else {
+        toast.error('Failed to delete blog post. Please try again.')
+      }
     } catch {
-      // Continue with local delete
+      toast.error('Network error. Please check your connection.')
     }
-    setPosts((prev) => prev.filter((p) => p.id !== id))
   }
 
   const togglePublish = async (post: BlogPost) => {
@@ -272,16 +273,19 @@ export default function BlogPage() {
     }
 
     try {
-      await fetch('/api/blogs', {
+      const res = await fetch('/api/blogs', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: post.id, isPublished: newStatus }),
       })
+      if (res.ok) {
+        setPosts((prev) => prev.map((p) => (p.id === post.id ? updatedPost : p)))
+      } else {
+        toast.error('Failed to update publish status. Please try again.')
+      }
     } catch {
-      // Continue with local update
+      toast.error('Network error. Please check your connection.')
     }
-
-    setPosts((prev) => prev.map((p) => (p.id === post.id ? updatedPost : p)))
   }
 
   return (
