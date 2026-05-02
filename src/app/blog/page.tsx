@@ -76,8 +76,9 @@ export default function BlogPage() {
         const res = await fetch('/api/blogs');
         if (res.ok) {
           const data = await res.json();
-          if (data.posts) {
-            setPosts(data.posts);
+          const posts = data.posts || data.data?.posts || [];
+          if (posts.length > 0) {
+            setPosts(posts);
           }
         }
       } catch {
