@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/select";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { trackEnquiry, trackWhatsAppClick } from "@/lib/analytics";
+
+interface FieldErrors {
+  [key: string]: string;
+}
 
 interface EnquiryFormProps {
   variant?: "default" | "compact" | "booking";
@@ -35,23 +39,35 @@ export function EnquiryForm({
   const [refNumber, setRefNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [eventType, setEventType] = useState(prefillEventType ?? "");
-  const [eventTypeError, setEventTypeError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const validate = (data: FormData): FieldErrors => {
+    const errors: FieldErrors = {};
+    const fullName = data.get("fullName") as string;
+    const phone = data.get("phone") as string;
+    const email = data.get("email") as string;
+
+    if (!fullName?.trim()) errors.fullName = "Please enter your full name.";
+    if (!phone?.trim()) errors.phone = "Please enter your phone number.";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Please enter a valid email address.";
+    }
+    if (!eventType) errors.eventType = "Please select an event type.";
+    return errors;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setEventTypeError(null);
+    const form = e.currentTarget;
+    const data = new FormData(form);
 
-    // Manual validation for eventType select
-    if (!eventType) {
-      setEventTypeError("Please select an event type.");
-      return;
-    }
+    const errors = validate(data);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
 
-    const form = e.currentTarget;
-    const data = new FormData(form);
     const ref = "MG-" + Date.now().toString(36).toUpperCase();
     setRefNumber(ref);
 
@@ -76,6 +92,9 @@ export function EnquiryForm({
       });
 
       if (res.ok) {
+        form.reset();
+        setEventType(prefillEventType ?? "");
+        setFieldErrors({});
         setSubmitted(true);
         trackEnquiry(eventType, data.get("hallPreference") as string | undefined);
       } else {
@@ -145,27 +164,27 @@ export function EnquiryForm({
         <div className="section-divider mt-4" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
             <Label htmlFor="fullName">Full Name *</Label>
             <Input
               id="fullName"
               name="fullName"
-              required
               placeholder="Your full name"
-              className="mt-1.5"
+              className={`mt-1.5 ${fieldErrors.fullName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {fieldErrors.fullName && <p className="text-sm text-red-600 mt-1">{fieldErrors.fullName}</p>}
           </div>
           <div>
             <Label htmlFor="phone">Phone Number *</Label>
             <Input
               id="phone"
               name="phone"
-              required
               placeholder="+977-XXXXXXXXXX"
-              className="mt-1.5"
+              className={`mt-1.5 ${fieldErrors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {fieldErrors.phone && <p className="text-sm text-red-600 mt-1">{fieldErrors.phone}</p>}
           </div>
         </div>
 
@@ -177,8 +196,9 @@ export function EnquiryForm({
               name="email"
               type="email"
               placeholder="your@email.com"
-              className="mt-1.5"
+              className={`mt-1.5 ${fieldErrors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {fieldErrors.email && <p className="text-sm text-red-600 mt-1">{fieldErrors.email}</p>}
           </div>
           <div>
             <Label htmlFor="eventType">Event Type *</Label>
@@ -187,10 +207,14 @@ export function EnquiryForm({
               value={eventType}
               onValueChange={(val) => {
                 setEventType(val);
-                setEventTypeError(null);
+                setFieldErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.eventType;
+                  return next;
+                });
               }}
             >
-              <SelectTrigger className="mt-1.5">
+              <SelectTrigger className={`mt-1.5 ${fieldErrors.eventType ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select event type" />
               </SelectTrigger>
               <SelectContent>
@@ -207,8 +231,8 @@ export function EnquiryForm({
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
-            {eventTypeError && (
-              <p className="text-sm text-red-600 mt-1">{eventTypeError}</p>
+            {fieldErrors.eventType && (
+              <p className="text-sm text-red-600 mt-1">{fieldErrors.eventType}</p>
             )}
           </div>
         </div>
@@ -285,7 +309,14 @@ export function EnquiryForm({
             disabled={loading}
             className="bg-burgundy hover:bg-burgundy-dark text-white px-8 py-3 rounded-sm w-full sm:w-auto"
           >
-            {loading ? "Submitting..." : "Submit Enquiry"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Enquiry"
+            )}
           </Button>
           <span className="text-muted-foreground text-sm">or</span>
           <a

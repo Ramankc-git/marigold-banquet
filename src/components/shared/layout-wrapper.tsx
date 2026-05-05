@@ -14,7 +14,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   if (isAdmin) {
     return (
       <>
-        <main className="min-h-screen">{children}</main>
+        <main id="main-content" className="min-h-screen">{children}</main>
         <Toaster />
         <SonnerToaster />
       </>
@@ -24,7 +24,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <main className="min-h-screen">{children}</main>
+      <main id="main-content" className="min-h-screen">{children}</main>
       <Footer />
       <WhatsAppFloat />
       <Toaster />

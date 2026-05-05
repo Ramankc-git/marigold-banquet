@@ -15,6 +15,7 @@ import {
   ChevronRight,
   CheckCircle2,
   Send,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -161,15 +162,43 @@ function AvailabilityCalendar() {
   );
 }
 
+interface FieldErrors {
+  [key: string]: string;
+}
+
 function VenueViewingForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const validate = (data: FormData): FieldErrors => {
+    const errors: FieldErrors = {};
+    const name = data.get('name') as string;
+    const phone = data.get('phone') as string;
+    const date = data.get('date') as string;
+    const time = data.get('time') as string;
+    const email = data.get('email') as string;
+
+    if (!name?.trim()) errors.name = 'Please enter your name.';
+    if (!phone?.trim()) errors.phone = 'Please enter your phone number.';
+    if (!date) errors.date = 'Please select a preferred date.';
+    if (!time) errors.time = 'Please select a preferred time.';
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    return errors;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     const form = e.currentTarget;
     const data = new FormData(form);
+
+    const errors = validate(data);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setLoading(true);
     try {
       const res = await fetch('/api/enquiries', {
         method: 'POST',
@@ -184,6 +213,8 @@ function VenueViewingForm() {
         }),
       });
       if (res.ok) {
+        form.reset();
+        setFieldErrors({});
         setSubmitted(true);
         trackBookingStarted('venue_viewing');
       } else {
@@ -214,30 +245,38 @@ function VenueViewingForm() {
     );
   }
 
+  const inputErrCls = (field: string) =>
+    fieldErrors[field] ? 'border-red-500 focus-visible:ring-red-500' : '';
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="viewName">Name *</Label>
-          <Input id="viewName" name="name" required placeholder="Your name" className="mt-1.5" />
+          <Input id="viewName" name="name" placeholder="Your name" className={`mt-1.5 ${inputErrCls('name')}`} />
+          {fieldErrors.name && <p className="text-sm text-red-600 mt-1">{fieldErrors.name}</p>}
         </div>
         <div>
           <Label htmlFor="viewPhone">Phone *</Label>
-          <Input id="viewPhone" name="phone" required placeholder="+977-XXXXXXXXXX" className="mt-1.5" />
+          <Input id="viewPhone" name="phone" placeholder="+977-XXXXXXXXXX" className={`mt-1.5 ${inputErrCls('phone')}`} />
+          {fieldErrors.phone && <p className="text-sm text-red-600 mt-1">{fieldErrors.phone}</p>}
         </div>
       </div>
       <div>
         <Label htmlFor="viewEmail">Email</Label>
-        <Input id="viewEmail" name="email" type="email" placeholder="your@email.com" className="mt-1.5" />
+        <Input id="viewEmail" name="email" type="email" placeholder="your@email.com" className={`mt-1.5 ${inputErrCls('email')}`} />
+        {fieldErrors.email && <p className="text-sm text-red-600 mt-1">{fieldErrors.email}</p>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="viewDate">Preferred Date *</Label>
-          <Input id="viewDate" name="date" type="date" required className="mt-1.5" />
+          <Input id="viewDate" name="date" type="date" className={`mt-1.5 ${inputErrCls('date')}`} />
+          {fieldErrors.date && <p className="text-sm text-red-600 mt-1">{fieldErrors.date}</p>}
         </div>
         <div>
           <Label htmlFor="viewTime">Preferred Time *</Label>
-          <Input id="viewTime" name="time" type="time" required className="mt-1.5" />
+          <Input id="viewTime" name="time" type="time" className={`mt-1.5 ${inputErrCls('time')}`} />
+          {fieldErrors.time && <p className="text-sm text-red-600 mt-1">{fieldErrors.time}</p>}
         </div>
       </div>
       <Button
@@ -245,8 +284,17 @@ function VenueViewingForm() {
         disabled={loading}
         className="w-full bg-burgundy hover:bg-burgundy-dark text-white rounded-sm"
       >
-        {loading ? 'Requesting...' : 'Request Site Visit'}
-        <Send className="w-4 h-4 ml-2" />
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Requesting...
+          </>
+        ) : (
+          <>
+            Request Site Visit
+            <Send className="w-4 h-4 ml-2" />
+          </>
+        )}
       </Button>
     </form>
   );

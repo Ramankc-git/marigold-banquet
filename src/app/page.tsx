@@ -2,7 +2,8 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Heart, PartyPopper, Briefcase, MapPin, ArrowRight, Star, Phone } from 'lucide-react';
+import Image from 'next/image';
+import { Heart, PartyPopper, Briefcase, MapPin, ArrowRight, Star, Phone, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -14,6 +15,7 @@ const eventPages = [
     href: '/weddings',
     gradient: 'from-burgundy to-burgundy-dark',
     cta: 'Explore Weddings',
+    image: '/images/event-weddings.jpg',
   },
   {
     icon: PartyPopper,
@@ -22,6 +24,7 @@ const eventPages = [
     href: '/parties',
     gradient: 'from-rose-gold to-burgundy-light',
     cta: 'Explore Parties',
+    image: '/images/event-parties.jpg',
   },
   {
     icon: Briefcase,
@@ -30,6 +33,7 @@ const eventPages = [
     href: '/corporate',
     gradient: 'from-burgundy-dark to-burgundy',
     cta: 'Explore Corporate',
+    image: '/images/event-corporate.jpg',
   },
   {
     icon: MapPin,
@@ -38,6 +42,25 @@ const eventPages = [
     href: '/spaces',
     gradient: 'from-marigold-dark to-marigold',
     cta: 'Explore Spaces',
+    image: '/images/event-spaces.jpg',
+  },
+];
+
+const galleryImages = [
+  {
+    src: '/images/venue-food.jpg',
+    alt: 'Luxury catering presentation at Marigold Banquet',
+    caption: 'Exquisite Catering',
+  },
+  {
+    src: '/images/venue-decoration.jpg',
+    alt: 'Elegant floral decoration and venue setup',
+    caption: 'Stunning Decorations',
+  },
+  {
+    src: '/images/event-spaces.jpg',
+    alt: 'Spacious Grand Marigold hall with elegant setup',
+    caption: 'Grand Venues',
   },
 ];
 
@@ -53,8 +76,17 @@ export default function Home() {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-burgundy via-burgundy-dark to-burgundy" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23DAA520%22%20fill-opacity%3D%220.05%22%3E%3Cpath%20d%3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22%2F%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E')] opacity-30" />
+        {/* Hero Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src="/images/hero-banquet.jpg"
+            alt="Elegant grand banquet hall with golden chandeliers and white draping"
+            className="w-full h-full object-cover"
+            fetchPriority="high"
+          />
+        </div>
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-burgundy/85 via-burgundy-dark/80 to-burgundy/85" />
 
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <motion.div
@@ -144,6 +176,15 @@ export default function Home() {
               >
                 <Link href={page.href}>
                   <Card className="h-full border-marigold/10 overflow-hidden cursor-pointer group">
+                    {/* Event Card Image */}
+                    <div className="relative h-[180px] w-full overflow-hidden">
+                      <img
+                        src={page.image}
+                        alt={`${page.title} at Marigold Banquet Hall`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    </div>
                     <div className={`h-2 bg-gradient-to-r ${page.gradient}`} />
                     <CardHeader>
                       <div className="flex items-center gap-3">
@@ -204,6 +245,63 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Gallery Preview */}
+      <section className="py-20 bg-ivory">
+        <div className="container mx-auto px-4">
+          <motion.div {...fadeInUp} className="text-center mb-14">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-burgundy mb-4">
+              Glimpse of Marigold
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              See the elegance and beauty our venue has to offer for your special occasions
+            </p>
+            <div className="section-divider mt-4" />
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {galleryImages.map((img, idx) => (
+              <motion.div
+                key={img.caption}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.12 }}
+              >
+                <Link href="/gallery" className="block group">
+                  <div className="relative overflow-hidden rounded-lg shadow-lg">
+                    <img
+                      src={img.src}
+                      alt={img.alt}
+                      className="w-full h-[240px] object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-burgundy/0 group-hover:bg-burgundy/30 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Camera className="w-10 h-10 text-white drop-shadow-lg" />
+                      </div>
+                    </div>
+                    {/* Caption bar */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                      <p className="text-white font-serif text-sm font-medium">{img.caption}</p>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div {...fadeInUp} className="text-center mt-10">
+            <Link href="/gallery">
+              <Button variant="outline" className="border-burgundy text-burgundy hover:bg-burgundy hover:text-white rounded-sm px-8">
+                <Camera className="w-4 h-4 mr-2" />
+                View Full Gallery
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 

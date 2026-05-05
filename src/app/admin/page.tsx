@@ -80,10 +80,13 @@ export default function AdminDashboard() {
 
   const monthlyRevenue = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0)
 
+  const enquiryCount = todayEnquiries || enquiries.filter((e) => e.status === 'new').length
+
   const stats = [
     {
       title: "Today's Enquiries",
-      value: todayEnquiries || enquiries.filter((e) => e.status === 'new').length,
+      value: enquiryCount,
+      rawValue: enquiryCount,
       icon: Mail,
       color: 'from-blue-500 to-blue-600',
       accent: 'bg-blue-50 text-blue-600',
@@ -92,6 +95,7 @@ export default function AdminDashboard() {
     {
       title: 'Upcoming Bookings',
       value: upcomingBookings,
+      rawValue: upcomingBookings,
       icon: Calendar,
       color: 'from-burgundy to-burgundy-dark',
       accent: 'bg-burgundy/10 text-burgundy',
@@ -100,6 +104,7 @@ export default function AdminDashboard() {
     {
       title: 'Monthly Revenue',
       value: formatCurrency(monthlyRevenue),
+      rawValue: monthlyRevenue,
       icon: DollarSign,
       color: 'from-marigold to-marigold-dark',
       accent: 'bg-marigold/10 text-marigold-dark',
@@ -108,6 +113,7 @@ export default function AdminDashboard() {
     {
       title: 'Gallery Photos',
       value: galleryCount,
+      rawValue: galleryCount,
       icon: ImageIcon,
       color: 'from-rose-gold to-rose-gold-light',
       accent: 'bg-rose-gold/10 text-rose-gold',
@@ -145,9 +151,15 @@ export default function AdminDashboard() {
                   <stat.icon className="w-5 h-5" />
                 </div>
               </div>
-              <div className="flex items-center mt-3 text-xs text-green-600">
-                <TrendingUp className="w-3 h-3 mr-1" />
-                <span>{stat.trend} from last month</span>
+              <div className="mt-3 text-xs">
+                {stat.rawValue > 0 ? (
+                  <span className="flex items-center text-green-600">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    {stat.trend} from last month
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">No data yet</span>
+                )}
               </div>
             </CardContent>
           </Card>

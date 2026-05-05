@@ -209,7 +209,7 @@ export default function AdminLayout({
 
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="w-64 p-0 bg-burgundy-dark border-white/10">
+        <SheetContent side="left" className="w-64 p-0 bg-burgundy-dark border-white/10 [&>button]:text-white [&>button]:hover:bg-white/10">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <SidebarNav
             onLinkClick={() => setSidebarOpen(false)}
