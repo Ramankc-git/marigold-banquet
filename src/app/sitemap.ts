@@ -1,12 +1,15 @@
 import { MetadataRoute } from "next";
 import { db } from "@/lib/db";
+import { BUSINESS } from "@/constants";
 
-const baseUrl = "https://marigoldbanquet.com.np";
+const baseUrl = BUSINESS.website;
 
 // Force dynamic rendering so the sitemap fetches blog posts at request time
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date().toISOString();
+
   // Fetch all published blog posts from the database
   let publishedPosts: { slug: string; updatedAt: Date }[] = [];
   try {
@@ -22,109 +25,109 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${baseUrl}/weddings`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/parties`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/corporate`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/spaces`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/food`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/decoration`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/booking`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/gallery`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/blog`,
-      lastModified: "2025-01-20",
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/faq`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${baseUrl}/offers`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/vendors`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${baseUrl}/refund`,
-      lastModified: "2025-01-01",
+      lastModified: now,
       changeFrequency: "yearly",
       priority: 0.3,
     },
@@ -135,7 +138,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${baseUrl}/blog/${post.slug}`,
     lastModified: post.updatedAt,
     changeFrequency: "monthly" as const,
-    priority: 0.7,
+    priority: 0.8,
   }));
 
   return [...staticPages, ...blogPages];

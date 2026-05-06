@@ -32,6 +32,12 @@ export const metadata: Metadata = {
   description:
     "Marigold Banquet Hall and Party Palace in Tokha-07 Gairigaun, Kathmandu. Premium venue for weddings, parties & corporate events. In-house catering & decoration. Call +977-9851111191.",
   keywords: [
+    // Brand keywords
+    "Marigold Banquet",
+    "Marigold Party Palace",
+    "marigold banquet hall kathmandu",
+    "marigold party palace tokha",
+    // Core local keywords
     "banquet hall Kathmandu",
     "wedding venue Kathmandu",
     "party palace Kathmandu",
@@ -39,18 +45,27 @@ export const metadata: Metadata = {
     "event hall Gairigaun",
     "wedding hall Nepal",
     "corporate event venue Kathmandu",
-    "Marigold Banquet",
-    "wedding venue Nepal",
     "event venue Kathmandu",
-    "bratabandha venue Kathmandu",
-    "pasni ceremony venue",
-    "banquet hall Nepal",
+    // Long-tail keywords
+    "best banquet hall in Kathmandu",
+    "best wedding venue Kathmandu",
+    "wedding reception Kathmandu",
+    "marriage hall Kathmandu",
+    "conference venue Kathmandu",
     "party venue Kathmandu",
     "event space Kathmandu",
-    "wedding reception Kathmandu",
-    "conference venue Kathmandu",
-    "best banquet hall Kathmandu",
-    "marriage hall Kathmandu",
+    "banquet hall Nepal",
+    "wedding venue Nepal",
+    // Cultural ceremony keywords
+    "bratabandha venue Kathmandu",
+    "pasni ceremony venue Kathmandu",
+    "nepali wedding venue",
+    "wedding party palace kathmandu",
+    // Service-specific keywords
+    "catering venue Kathmandu",
+    "decoration venue Kathmandu",
+    "luxury banquet hall Kathmandu",
+    "affordable party palace Kathmandu",
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -156,6 +171,7 @@ export default function RootLayout({
     ],
     sameAs: [
       BUSINESS.social.facebook,
+      BUSINESS.social.instagram,
     ],
     aggregateRating: {
       "@type": "AggregateRating",
